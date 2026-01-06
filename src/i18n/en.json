@@ -149,5 +149,16 @@
     "please_add_worker": "Please add at least 1 worker",
     "length": "Length",
     "height": "Height",
-    "ft": "ft"
+    "ft": "ft",
+    "additional_requirements_label": "Additional Work Requirements (Optional)",
+    "additional_requirements_placeholder": "Example: Tools required, finishing type, quality expectation, time preference",
+    "additional_requirements_helper": "Explain work in your own words",
+    "custom_days": "Custom Days",
+    "enter_days": "Enter number of days",
+    "per_day": "Per Day",
+    "fixed_contract": "Fixed Contract",
+    "approx_payment_label": "Payment",
+    "payment_amount_placeholder": "Enter amount",
+    "requirements_per_skill": "Requirements per Skill",
+    "per_skill_details": "Specify workers and payment for each skill"
 }

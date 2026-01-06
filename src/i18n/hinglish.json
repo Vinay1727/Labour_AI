@@ -149,5 +149,16 @@
     "please_add_worker": "Kam se kam 1 worker add karein",
     "length": "Lambai (Length)",
     "height": "Unchai (Height)",
-    "ft": "ft"
+    "ft": "ft",
+    "additional_requirements_label": "Extra Work Conditions (Optional)",
+    "additional_requirements_placeholder": "Example: Tools chahiye, finishing kaisi hogi, time preference kya hai",
+    "additional_requirements_helper": "Apne shabdon mein kaam samjhayein",
+    "custom_days": "Custom Din",
+    "enter_days": "Dino ki ginti bharein",
+    "per_day": "Per Day",
+    "fixed_contract": "Fixed Contract",
+    "approx_payment_label": "Payment",
+    "payment_amount_placeholder": "Amount bharein",
+    "requirements_per_skill": "Har Skill ki Requirements",
+    "per_skill_details": "Har skill ke liye workers aur payment bharein"
 }
