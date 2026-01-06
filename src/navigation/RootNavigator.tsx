@@ -10,6 +10,8 @@ import RatingScreen from '../screens/RatingScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import LanguageSelectionScreen from '../screens/LanguageSelectionScreen';
+import AttendanceScreen from '../screens/AttendanceScreen';
+import AttendanceHistoryScreen from '../screens/AttendanceHistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -28,6 +30,8 @@ export default function RootNavigator() {
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
+          <Stack.Screen name="Attendance" component={AttendanceScreen} />
+          <Stack.Screen name="AttendanceHistory" component={AttendanceHistoryScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />

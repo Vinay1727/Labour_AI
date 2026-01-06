@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,7 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
+import api from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +16,36 @@ export default function HomeScreen() {
     const { role } = useAuth();
     const navigation = useNavigation<any>();
     const { t } = useTranslation();
+    const [availableJobs, setAvailableJobs] = React.useState<any[]>([]);
+
+    React.useEffect(() => {
+        if (role === 'labour') {
+            fetchJobs();
+        }
+    }, [role]);
+
+    const fetchJobs = async () => {
+        try {
+            const res = await api.get('/jobs');
+            if (res.data.success) {
+                setAvailableJobs(res.data.data);
+            }
+        } catch (err) {
+            console.error('Fetch Jobs Error:', err);
+        }
+    };
+
+    const handleApply = async (jobId: string) => {
+        try {
+            const res = await api.post('/deals/apply', { jobId });
+            if (res.data.success) {
+                Alert.alert('Applied', 'You have successfully applied for this job.');
+                fetchJobs();
+            }
+        } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || 'Failed to apply');
+        }
+    };
 
     const renderContractorView = () => (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -45,8 +76,6 @@ export default function HomeScreen() {
             {/* Active Requests Section */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('in_progress')}</Text>
-
-                {/* Mock Data for Active Requests */}
                 {[1, 2].map((item) => (
                     <TouchableOpacity
                         key={item}
@@ -69,7 +98,6 @@ export default function HomeScreen() {
                 ))}
             </View>
 
-            {/* Tips Section */}
             <View style={styles.tipCard}>
                 <AppIcon name="information-circle-outline" size={20} color={Colors.primary} />
                 <Text style={styles.tipText}>Only nearby labour will see your request</Text>
@@ -79,7 +107,6 @@ export default function HomeScreen() {
 
     const renderLabourView = () => (
         <View style={styles.scrollView}>
-            {/* Header Section */}
             <View style={[styles.headerSection, { backgroundColor: Colors.headerGreen }]}>
                 <View style={styles.headerContent}>
                     <Text style={styles.greeting}>{t('nearby_work_for_you')}</Text>
@@ -94,23 +121,24 @@ export default function HomeScreen() {
                 </View>
             </View>
 
-            {/* Nearby Work Cards */}
             <FlatList
-                data={[1, 2, 3]}
-                keyExtractor={(item) => item.toString()}
+                data={availableJobs}
+                keyExtractor={(item) => item._id}
                 contentContainerStyle={{ padding: spacing.layout.containerPaddding }}
                 ListHeaderComponent={<Text style={styles.sectionTitle}>{t('available_jobs')}</Text>}
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         style={styles.jobCard}
-                        onPress={() => navigation.navigate('Details', { itemId: item.toString(), itemType: 'job' })}
+                        onPress={() => navigation.navigate('Details', { itemId: item._id, itemType: 'job' })}
                     >
                         <View style={styles.jobHeader}>
                             <View>
-                                <Text style={styles.jobRoleTitle}>{item === 1 ? 'Painter' : item === 2 ? 'Mistri' : 'Helper'}</Text>
-                                <Text style={styles.jobDistance}>1.5 km away</Text>
+                                <Text style={styles.jobRoleTitle}>{item.workType}</Text>
+                                <Text style={styles.jobDistance}>
+                                    {item.location?.area ? `${item.location.area}, ${item.location.city}` : (item.location?.address || 'Location N/A')}
+                                </Text>
                             </View>
-                            <Text style={styles.jobPrice}>₹800/day</Text>
+                            <Text style={styles.jobPrice}>₹{item.paymentAmount}</Text>
                         </View>
 
                         <View style={styles.jobActions}>
@@ -119,9 +147,9 @@ export default function HomeScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.acceptButton}
-                                onPress={() => navigation.navigate('Details', { itemId: item.toString(), itemType: 'job' })}
+                                onPress={() => handleApply(item._id)}
                             >
-                                <Text style={styles.acceptButtonText}>{t('accept')}</Text>
+                                <Text style={styles.acceptButtonText}>{t('apply')}</Text>
                             </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
@@ -166,11 +194,11 @@ const styles = StyleSheet.create({
     greeting: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: Colors.textPrimary,
     },
     subGreeting: {
         fontSize: 14,
-        color: Colors.textLight,
+        color: Colors.textSecondary,
         marginTop: 4,
     },
     locationIndicator: {
@@ -269,7 +297,7 @@ const styles = StyleSheet.create({
     workType: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: Colors.textPrimary,
         marginBottom: 4,
     },
     locationRow: {
@@ -278,7 +306,7 @@ const styles = StyleSheet.create({
     },
     locationText: {
         fontSize: 12,
-        color: Colors.textLight,
+        color: Colors.textSecondary,
         marginLeft: 4,
     },
     statusBadge: {
@@ -322,11 +350,11 @@ const styles = StyleSheet.create({
     jobRoleTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: Colors.textPrimary,
     },
     jobDistance: {
         fontSize: 12,
-        color: Colors.textLight,
+        color: Colors.textSecondary,
         marginTop: 2,
     },
     jobPrice: {
@@ -347,7 +375,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     ignoreButtonText: {
-        color: Colors.textLight,
+        color: Colors.textSecondary,
         fontWeight: '600',
     },
     acceptButton: {
@@ -368,7 +396,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 16,
-        color: Colors.textLight,
+        color: Colors.textSecondary,
         marginTop: 16,
     }
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
@@ -9,21 +9,94 @@ import { StatusTab } from '../components/deals/StatusTab';
 import { DealCard } from '../components/deals/DealCard';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
-import { DealStatus } from '../types/deals';
+import { DealStatus, Deal } from '../types/deals';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store/rootReducer';
+import { setDeals } from '../features/deals/slice';
 
-const MOCK_DEALS = [
-    { id: '1', workType: 'Painter / पेंटर', location: 'Noida Sec 62', date: 'Oct 24, 2025', status: 'active', userName: 'Sunil Kumar', payment: '₹1200/day', assignedLabourId: 'lab_001' },
-    { id: '2', workType: 'Masonry / मिस्त्री', location: 'Greater Noida', date: 'Oct 22, 2025', status: 'completed', userName: 'Rajesh Contractor', payment: '₹8000 (Total)', assignedLabourId: 'lab_001' },
-    { id: '3', workType: 'Helper / हेल्पर', location: 'Ghaziabad', date: 'Oct 20, 2025', status: 'completion_requested', userName: 'Amit Singh', payment: '₹600/day', assignedLabourId: 'lab_001' },
-    { id: '4', workType: 'Brick Work', location: 'Indirapuram', date: 'Oct 15, 2025', status: 'active', userName: 'Vijay Mistri', payment: '₹1500/day', assignedLabourId: 'lab_001' },
+const MOCK_DEALS: Deal[] = [
+    {
+        id: '1',
+        jobId: 'job_1',
+        workType: 'Painter / पेंटर',
+        location: { area: 'Noida Sec 62', city: 'Noida' },
+        date: 'Oct 24, 2025',
+        status: 'active',
+        contractorName: 'Sunil Kumar',
+        contractorId: 'c_1',
+        labourName: 'Me',
+        labourId: 'lab_001',
+        payment: '₹1200/day',
+        createdAt: '2025-10-24T10:00:00Z',
+        updatedAt: '2025-10-24T10:00:00Z',
+        userName: 'Sunil Kumar'
+    },
+    {
+        id: '2',
+        jobId: 'job_2',
+        workType: 'Masonry / मिस्त्री',
+        location: { area: 'Greater Noida', city: 'Noida' },
+        date: 'Oct 22, 2025',
+        status: 'completed',
+        contractorName: 'Rajesh Contractor',
+        contractorId: 'c_2',
+        labourName: 'Me',
+        labourId: 'lab_001',
+        payment: '₹8000 (Total)',
+        createdAt: '2025-10-22T10:00:00Z',
+        updatedAt: '2025-10-22T10:00:00Z',
+        userName: 'Rajesh Contractor'
+    },
+    {
+        id: '3',
+        jobId: 'job_3',
+        workType: 'Helper / हेल्पर',
+        location: { area: 'Ghaziabad', city: 'Ghaziabad' },
+        date: 'Oct 20, 2025',
+        status: 'completion_requested',
+        contractorName: 'Amit Singh',
+        contractorId: 'c_3',
+        labourName: 'Me',
+        labourId: 'lab_001',
+        payment: '₹600/day',
+        createdAt: '2025-10-20T10:00:00Z',
+        updatedAt: '2025-10-20T10:00:00Z',
+        userName: 'Amit Singh'
+    },
 ];
 
 export default function DealsScreen() {
-    const { role } = useAuth();
+    const { role, user } = useAuth();
     const navigation = useNavigation<any>();
     const { t } = useTranslation();
+    const dispatch = useDispatch();
+
+    // Select from Redux
+    const deals = useSelector((state: RootState) => state.deals.deals);
+
     const [activeTab, setActiveTab] = useState<DealStatus | 'All'>('active');
-    const [deals, setDeals] = useState(MOCK_DEALS);
+
+    // Init data
+    useEffect(() => {
+        if (deals.length === 0) {
+            // Transform MOCK_DEALS to match type if needed, but here we defined it to match Deal interface (mostly)
+            // Note: MOCK_DEALS items above are tailored to satisfy Deal interface + UI needs
+            // We might need to map 'userName' to deal props dynamically or keep it simple.
+            // In DealCard, it uses 'userName'. In Deal interface, we have contractorName/labourName.
+            // We will fix MOCK_DEALS object structure to be strictly compliant if TS complains, 
+            // but for now we added compatible fields.
+
+            // To ensure DealCard works (it expects userName), we need to ensure Deal objects have what DealCard needs 
+            // OR Update DealCard to use new fields. 
+            // Let's stick to the current MOCK_DEALS structure which works for DealCard, but cast it?
+            // Actually I updated Deal interface. 
+            // I should use the Deal interface which has contractorName etc.
+            // DealCard expects { userName, ... }.
+            // I'll adhere to the logic:
+
+            dispatch(setDeals(MOCK_DEALS));
+        }
+    }, []);
 
     const tabs = ['active', 'completion_requested', 'completed'];
     const isContractor = role === 'contractor';
@@ -47,7 +120,8 @@ export default function DealsScreen() {
                 {
                     text: "Yes",
                     onPress: () => {
-                        setDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: newStatus } : d));
+                        const updatedDeals = deals.map(d => d.id === dealId ? { ...d, status: newStatus } : d);
+                        dispatch(setDeals(updatedDeals));
                     }
                 }
             ]

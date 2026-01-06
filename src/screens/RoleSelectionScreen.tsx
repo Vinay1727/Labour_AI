@@ -7,18 +7,22 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { AppButton } from '../components/common/AppButton';
 
-export default function RoleSelectionScreen({ route }: any) {
-    const { login } = useAuth();
+export default function RoleSelectionScreen() {
+    const { updateRole } = useAuth();
     const [selectedRole, setSelectedRole] = useState<'contractor' | 'labour' | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = () => {
+    const handleConfirm = async () => {
         if (selectedRole) {
             setIsLoading(true);
-            setTimeout(() => {
+            try {
+                await updateRole(selectedRole);
+                // AuthContext will update 'role' state -> RootNavigator moves to Main
+            } catch (e) {
+                console.error(e);
+            } finally {
                 setIsLoading(false);
-                login(selectedRole);
-            }, 800);
+            }
         }
     };
 
@@ -74,8 +78,8 @@ export default function RoleSelectionScreen({ route }: any) {
 
                 <View style={styles.footer}>
                     <AppButton
-                        title="Login / लॉगिन करें"
-                        onPress={handleLogin}
+                        title="Start / शुरू करें"
+                        onPress={handleConfirm}
                         disabled={!selectedRole}
                         loading={isLoading}
                     />
