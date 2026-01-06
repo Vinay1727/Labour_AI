@@ -22,16 +22,24 @@ import { useTranslation } from '../context/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 
+interface SkillRequirement {
+    id: string;
+    count: number;
+    payment: {
+        amount: string;
+        type: 'per_day' | 'fixed';
+    };
+}
+
 export default function PostNewWorkScreen({ navigation }: any) {
     const { t } = useTranslation();
-    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-    const [skilledCount, setSkilledCount] = useState(0);
-    const [labourCount, setLabourCount] = useState(0);
+    const [selectedSkills, setSelectedSkills] = useState<SkillRequirement[]>([]);
     const [workSize, setWorkSize] = useState({ length: '', height: '' });
     const [images, setImages] = useState<string[]>([]);
-    const [duration, setDuration] = useState('1 Day');
+    const [durationLabel, setDurationLabel] = useState('1 Day');
+    const [customDays, setCustomDays] = useState('');
     const [location, setLocation] = useState<any>(null);
-    const [payment, setPayment] = useState({ amount: '', type: 'Per Day' });
+    const [additionalRequirements, setAdditionalRequirements] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
@@ -44,28 +52,43 @@ export default function PostNewWorkScreen({ navigation }: any) {
     ];
 
     const durations = [
-        { id: '1_day', label: '1 Day' },
-        { id: 'multi_day', label: '2–5 Days' },
-        { id: 'contract', label: 'Contract' }
+        { id: '1_day', label: '1 Day', type: 'fixed' },
+        { id: 'multi_day', label: '2–5 Days', type: 'fixed' },
+        { id: 'contract', label: 'Contract', type: 'contract' },
+        { id: 'custom', label: t('custom_days'), type: 'custom' }
     ];
 
-    const paymentTypes = ['Per Day', 'Fixed/Contract'];
+    const paymentOptions = [
+        { id: 'per_day', label: t('per_day') },
+        { id: 'fixed', label: t('fixed_contract') }
+    ];
 
-    const showSizeFields = selectedTypes.some(id =>
-        workTypes.find(w => w.id === id)?.needsSize
-    );
-
-    const isSkilledWorkSelected = selectedTypes.some(id =>
-        workTypes.find(w => w.id === id)?.skilled
-    );
+    const isSkillSelected = (id: string) => selectedSkills.some(s => s.id === id);
 
     const toggleWorkType = (id: string) => {
-        if (selectedTypes.includes(id)) {
-            setSelectedTypes(selectedTypes.filter(t => t !== id));
+        if (isSkillSelected(id)) {
+            setSelectedSkills(selectedSkills.filter(s => s.id !== id));
         } else {
-            setSelectedTypes([...selectedTypes, id]);
+            setSelectedSkills([
+                ...selectedSkills,
+                { id, count: 1, payment: { amount: '', type: 'per_day' } }
+            ]);
         }
     };
+
+    const updateSkillData = (id: string, updates: Partial<SkillRequirement>) => {
+        setSelectedSkills(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    };
+
+    const updateSkillPayment = (id: string, updates: Partial<SkillRequirement['payment']>) => {
+        setSelectedSkills(prev => prev.map(s =>
+            s.id === id ? { ...s, payment: { ...s.payment, ...updates } } : s
+        ));
+    };
+
+    const showSizeFields = selectedSkills.some(s =>
+        workTypes.find(w => w.id === s.id)?.needsSize
+    );
 
     const pickImage = async () => {
         if (images.length >= 5) {
@@ -127,31 +150,35 @@ export default function PostNewWorkScreen({ navigation }: any) {
     }, []);
 
     const isFormValid = () => {
-        if (selectedTypes.length === 0) return false;
-        if (isSkilledWorkSelected && skilledCount === 0) return false;
-        if (!isSkilledWorkSelected && labourCount === 0) return false;
-        if (skilledCount === 0 && labourCount === 0) return false;
+        if (selectedSkills.length === 0) return false;
+        if (selectedSkills.some(s => s.count < 1)) return false;
+        if (durationLabel === t('custom_days') && (!customDays || parseInt(customDays) < 1)) return false;
         return true;
     };
 
     const handlePostWork = () => {
         setIsLoading(true);
 
+        const currentDuration = durations.find(d => d.label === durationLabel);
+
         const payload = {
-            workType: selectedTypes,
-            skilledCount,
-            labourCount,
+            skills: selectedSkills.map(s => ({
+                skillType: s.id,
+                requiredCount: s.count,
+                payment: {
+                    amount: parseFloat(s.payment.amount) || null,
+                    type: s.payment.type || null
+                }
+            })),
             workSize: showSizeFields ? {
                 length: parseFloat(workSize.length) || null,
                 height: parseFloat(workSize.height) || null
             } : null,
             images,
-            duration: durations.find(d => d.label === duration)?.id || '1_day',
+            durationType: currentDuration?.type || 'fixed',
+            customDays: currentDuration?.type === 'custom' ? parseInt(customDays) : null,
+            additionalRequirements: additionalRequirements || null,
             location: location,
-            payment: {
-                amount: parseFloat(payment.amount) || null,
-                type: payment.type
-            }
         };
 
         console.log('Post Work Payload:', payload);
@@ -163,29 +190,23 @@ export default function PostNewWorkScreen({ navigation }: any) {
         }, 1500);
     };
 
-    const Stepper = ({ label, subLabel, value, onChange, max = 20 }: any) => (
-        <View style={styles.stepperSection}>
-            <View style={styles.stepperInfo}>
-                <Text style={styles.stepperLabel}>{label}</Text>
-                <Text style={styles.stepperSubLabel}>{subLabel}</Text>
-            </View>
-            <View style={styles.stepperControls}>
-                <TouchableOpacity
-                    style={[styles.stepperBtn, value === 0 && styles.stepperBtnDisabled]}
-                    onPress={() => onChange(Math.max(0, value - 1))}
-                    disabled={value === 0}
-                >
-                    <AppIcon name="remove" size={20} color={value === 0 ? Colors.textDisabled : Colors.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.stepperValue}>{value}</Text>
-                <TouchableOpacity
-                    style={[styles.stepperBtn, value >= max && styles.stepperBtnDisabled]}
-                    onPress={() => onChange(Math.min(max, value + 1))}
-                    disabled={value >= max}
-                >
-                    <AppIcon name="add" size={20} color={value >= max ? Colors.textDisabled : Colors.textPrimary} />
-                </TouchableOpacity>
-            </View>
+    const Stepper = ({ value, onChange, max = 20 }: any) => (
+        <View style={styles.stepperControls}>
+            <TouchableOpacity
+                style={[styles.stepperBtn, value === 1 && styles.stepperBtnDisabled]}
+                onPress={() => onChange(Math.max(1, value - 1))}
+                disabled={value === 1}
+            >
+                <AppIcon name="remove" size={20} color={value === 1 ? Colors.textDisabled : Colors.textPrimary} />
+            </TouchableOpacity>
+            <Text style={styles.stepperValue}>{value}</Text>
+            <TouchableOpacity
+                style={[styles.stepperBtn, value >= max && styles.stepperBtnDisabled]}
+                onPress={() => onChange(Math.min(max, value + 1))}
+                disabled={value >= max}
+            >
+                <AppIcon name="add" size={20} color={value >= max ? Colors.textDisabled : Colors.textPrimary} />
+            </TouchableOpacity>
         </View>
     );
 
@@ -206,7 +227,7 @@ export default function PostNewWorkScreen({ navigation }: any) {
                 </View>
 
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    {/* Work Type */}
+                    {/* Work Type Selection */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>{t('select_work_type')}</Text>
                         <View style={styles.workTypeGrid}>
@@ -215,7 +236,7 @@ export default function PostNewWorkScreen({ navigation }: any) {
                                     key={type.id}
                                     style={[
                                         styles.typeCard,
-                                        selectedTypes.includes(type.id) && styles.selectedTypeCard
+                                        isSkillSelected(type.id) && styles.selectedTypeCard
                                     ]}
                                     onPress={() => toggleWorkType(type.id)}
                                     activeOpacity={0.8}
@@ -223,9 +244,9 @@ export default function PostNewWorkScreen({ navigation }: any) {
                                     <Text style={styles.typeIcon}>{type.icon}</Text>
                                     <Text style={[
                                         styles.typeLabel,
-                                        selectedTypes.includes(type.id) && styles.selectedTypeLabel
+                                        isSkillSelected(type.id) && styles.selectedTypeLabel
                                     ]}>{type.label}</Text>
-                                    {selectedTypes.includes(type.id) && (
+                                    {isSkillSelected(type.id) && (
                                         <View style={styles.checkBadge}>
                                             <AppIcon name="checkmark-circle" size={20} color={Colors.primary} />
                                         </View>
@@ -235,29 +256,93 @@ export default function PostNewWorkScreen({ navigation }: any) {
                         </View>
                     </View>
 
-                    {/* Labour Counts */}
+                    {/* Skill-Specific details */}
+                    {selectedSkills.length > 0 && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>{t('requirements_per_skill')}</Text>
+                            <Text style={styles.sectionSubtitle}>{t('per_skill_details')}</Text>
+
+                            {selectedSkills.map(skill => {
+                                const typeInfo = workTypes.find(w => w.id === skill.id);
+                                return (
+                                    <View key={skill.id} style={styles.skillRowCard}>
+                                        <View style={styles.skillRowHeader}>
+                                            <View style={styles.skillIconBadge}>
+                                                <Text style={styles.skillIconText}>{typeInfo?.icon}</Text>
+                                            </View>
+                                            <Text style={styles.skillLabelText}>{typeInfo?.label}</Text>
+                                        </View>
+
+                                        {/* Required Workers Section */}
+                                        <View style={styles.skillSection}>
+                                            <Text style={styles.configLabel}>Required Workers</Text>
+                                            <Stepper
+                                                value={skill.count}
+                                                onChange={(val: number) => updateSkillData(skill.id, { count: val })}
+                                            />
+                                        </View>
+
+                                        <View style={styles.inlineDivider} />
+
+                                        {/* Payment Section */}
+                                        <View style={styles.skillSection}>
+                                            <Text style={styles.configLabel}>{t('approx_payment_label')}</Text>
+                                            <View style={styles.skillPaymentContainer}>
+                                                <View style={styles.fullWidthInputWrapper}>
+                                                    <Text style={styles.skillCurrencyPrefix}>₹</Text>
+                                                    <TextInput
+                                                        style={styles.skillPaymentInputFull}
+                                                        placeholder="Enter amount"
+                                                        keyboardType="numeric"
+                                                        value={skill.payment.amount}
+                                                        onChangeText={(val) => updateSkillPayment(skill.id, { amount: val })}
+                                                    />
+                                                </View>
+
+                                                <View style={styles.skillPaymentOptionsRow}>
+                                                    {paymentOptions.map(opt => (
+                                                        <TouchableOpacity
+                                                            key={opt.id}
+                                                            style={styles.paymentRadioOption}
+                                                            onPress={() => updateSkillPayment(skill.id, { type: opt.id as any })}
+                                                        >
+                                                            <View style={[
+                                                                styles.miniRadio,
+                                                                skill.payment.type === opt.id && styles.miniRadioActive
+                                                            ]}>
+                                                                {skill.payment.type === opt.id && <View style={styles.miniRadioDot} />}
+                                                            </View>
+                                                            <Text style={[
+                                                                styles.miniRadioLabel,
+                                                                skill.payment.type === opt.id && styles.miniRadioLabelActive
+                                                            ]}>{opt.label}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )}
+
+                    {/* Additional Requirements */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>{t('work_requirements')}</Text>
-                        <View style={styles.card}>
-                            <Stepper
-                                label={t('skilled_workers')}
-                                subLabel={t('skilled_desc')}
-                                value={skilledCount}
-                                onChange={setSkilledCount}
-                            />
-                            <View style={styles.divider} />
-                            <Stepper
-                                label={t('general_labour')}
-                                subLabel={t('labour_desc')}
-                                value={labourCount}
-                                onChange={setLabourCount}
-                            />
-                            {skilledCount === 0 && labourCount === 0 && (
-                                <View style={styles.warningBox}>
-                                    <AppIcon name="warning-outline" size={16} color={Colors.warning} />
-                                    <Text style={styles.warningText}>{t('please_add_worker')}</Text>
-                                </View>
-                            )}
+                        <Text style={styles.sectionTitle}>{t('additional_requirements_label')}</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder={t('additional_requirements_placeholder')}
+                            placeholderTextColor={Colors.textSecondary}
+                            multiline
+                            numberOfLines={4}
+                            maxLength={300}
+                            value={additionalRequirements}
+                            onChangeText={setAdditionalRequirements}
+                        />
+                        <View style={styles.textAreaFooter}>
+                            <Text style={styles.helperText}>{t('additional_requirements_helper')}</Text>
+                            <Text style={styles.charCount}>{additionalRequirements.length}/300</Text>
                         </View>
                     </View>
 
@@ -327,17 +412,30 @@ export default function PostNewWorkScreen({ navigation }: any) {
                                     key={d.id}
                                     style={[
                                         styles.durationChip,
-                                        duration === d.label && styles.selectedDurationChip
+                                        durationLabel === d.label && styles.selectedDurationChip
                                     ]}
-                                    onPress={() => setDuration(d.label)}
+                                    onPress={() => setDurationLabel(d.label)}
                                 >
                                     <Text style={[
                                         styles.durationChipText,
-                                        duration === d.label && styles.selectedDurationChipText
+                                        durationLabel === d.label && styles.selectedDurationChipText
                                     ]}>{d.label}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
+                        {durationLabel === t('custom_days') && (
+                            <View style={[styles.inputGroup, { marginTop: spacing.md }]}>
+                                <Text style={styles.inputLabel}>{t('enter_days')}</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Ex: 10"
+                                    keyboardType="numeric"
+                                    maxLength={2}
+                                    value={customDays}
+                                    onChangeText={setCustomDays}
+                                />
+                            </View>
+                        )}
                     </View>
 
                     {/* Location */}
@@ -364,39 +462,7 @@ export default function PostNewWorkScreen({ navigation }: any) {
                         </TouchableOpacity>
                     </View>
 
-
-                    {/* Payment */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>{t('approx_payment')} (Optional)</Text>
-                        <View style={styles.paymentContainer}>
-                            <TextInput
-                                style={[styles.input, { flex: 1 }]}
-                                placeholder="Amount (₹)"
-                                keyboardType="numeric"
-                                value={payment.amount}
-                                onChangeText={(val) => setPayment({ ...payment, amount: val })}
-                            />
-                            <View style={styles.paymentTypeTabs}>
-                                {paymentTypes.map(type => (
-                                    <TouchableOpacity
-                                        key={type}
-                                        style={[
-                                            styles.paymentTab,
-                                            payment.type === type && styles.selectedPaymentTab
-                                        ]}
-                                        onPress={() => setPayment({ ...payment, type })}
-                                    >
-                                        <Text style={[
-                                            styles.paymentTabText,
-                                            payment.type === type && styles.selectedPaymentTabText
-                                        ]}>{type}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={{ height: 100 }} />
+                    <View style={{ height: 120 }} />
                 </ScrollView>
 
                 <View style={styles.footer}>
@@ -452,6 +518,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: typography.weight.bold,
         color: Colors.textPrimary,
+        marginBottom: spacing.xs,
+    },
+    sectionSubtitle: {
+        fontSize: 13,
+        color: Colors.textSecondary,
         marginBottom: spacing.md,
     },
     workTypeGrid: {
@@ -490,31 +561,124 @@ const styles = StyleSheet.create({
         top: 8,
         right: 8,
     },
-    card: {
+    skillRowCard: {
         backgroundColor: Colors.white,
-        borderRadius: 16,
+        borderRadius: 20,
         padding: spacing.md,
+        marginBottom: spacing.md,
         borderWidth: 1,
         borderColor: Colors.border,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
     },
-    stepperSection: {
+    skillRowHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: spacing.sm,
+        marginBottom: spacing.md,
     },
-    stepperInfo: {
-        flex: 1,
+    skillIconBadge: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: Colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: spacing.sm,
     },
-    stepperLabel: {
-        fontSize: 15,
-        fontWeight: typography.weight.semiBold,
+    skillIconText: {
+        fontSize: 20,
+    },
+    skillLabelText: {
+        fontSize: 18,
+        fontWeight: typography.weight.bold,
         color: Colors.textPrimary,
+        textTransform: 'capitalize',
     },
-    stepperSubLabel: {
+    skillSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: spacing.md,
+    },
+    configLabel: {
+        fontSize: 14,
+        fontWeight: typography.weight.semiBold,
+        color: Colors.textSecondary,
+    },
+    inlineDivider: {
+        height: 1,
+        backgroundColor: Colors.border,
+        opacity: 0.5,
+    },
+    skillPaymentContainer: {
+        flex: 1,
+        marginLeft: spacing.lg,
+    },
+    fullWidthInputWrapper: {
+        position: 'relative',
+        marginBottom: spacing.sm,
+    },
+    skillCurrencyPrefix: {
+        position: 'absolute',
+        left: 12,
+        top: 11,
+        fontSize: 16,
+        fontWeight: typography.weight.bold,
+        color: Colors.textPrimary,
+        zIndex: 1,
+    },
+    skillPaymentInputFull: {
+        backgroundColor: Colors.background,
+        borderRadius: 12,
+        paddingLeft: 28,
+        paddingRight: spacing.md,
+        paddingVertical: 10,
+        fontSize: 16,
+        fontWeight: typography.weight.bold,
+        color: Colors.primary,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        width: '100%',
+    },
+    skillPaymentOptionsRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        gap: spacing.md,
+    },
+    paymentRadioOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    miniRadio: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        borderWidth: 1.5,
+        borderColor: Colors.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 4,
+    },
+    miniRadioActive: {
+        borderColor: Colors.primary,
+    },
+    miniRadioDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: Colors.primary,
+    },
+    miniRadioLabel: {
         fontSize: 12,
         color: Colors.textSecondary,
-        marginTop: 2,
+    },
+    miniRadioLabelActive: {
+        color: Colors.primary,
+        fontWeight: typography.weight.bold,
     },
     stepperControls: {
         flexDirection: 'row',
@@ -524,9 +688,9 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     stepperBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 8,
         backgroundColor: Colors.white,
         justifyContent: 'center',
         alignItems: 'center',
@@ -542,36 +706,18 @@ const styles = StyleSheet.create({
     },
     stepperValue: {
         paddingHorizontal: spacing.md,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: typography.weight.bold,
         color: Colors.textPrimary,
-        minWidth: 40,
+        minWidth: 36,
         textAlign: 'center',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.border,
-        marginVertical: spacing.md,
-    },
-    warningBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFBEB',
-        padding: spacing.sm,
-        borderRadius: 8,
-        marginTop: spacing.md,
-    },
-    warningText: {
-        fontSize: 12,
-        color: Colors.warning,
-        marginLeft: spacing.xs,
-        fontWeight: typography.weight.medium,
     },
     row: {
         flexDirection: 'row',
     },
     inputGroup: {
         marginBottom: spacing.xs,
+        position: 'relative',
     },
     inputLabel: {
         fontSize: 13,
@@ -588,10 +734,23 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: Colors.textPrimary,
     },
+    textArea: {
+        height: 100,
+        textAlignVertical: 'top',
+        paddingTop: spacing.md,
+    },
+    textAreaFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: spacing.xs,
+    },
+    charCount: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+    },
     helperText: {
         fontSize: 12,
         color: Colors.textSecondary,
-        marginTop: spacing.xs,
         fontStyle: 'italic',
     },
     imageContainer: {
@@ -632,10 +791,11 @@ const styles = StyleSheet.create({
     },
     durationGrid: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: spacing.sm,
     },
     durationChip: {
-        flex: 1,
+        width: '48%',
         paddingVertical: spacing.md,
         borderRadius: 12,
         borderWidth: 1,
@@ -685,35 +845,6 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: typography.weight.bold,
         marginTop: 2,
-    },
-    paymentContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.md,
-    },
-    paymentTypeTabs: {
-        flexDirection: 'row',
-        backgroundColor: Colors.textInput,
-        borderRadius: 12,
-        padding: 4,
-    },
-    paymentTab: {
-        paddingHorizontal: spacing.md,
-        paddingVertical: 8,
-        borderRadius: 8,
-    },
-    selectedPaymentTab: {
-        backgroundColor: Colors.white,
-        elevation: 1,
-    },
-    paymentTabText: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        fontWeight: typography.weight.medium,
-    },
-    selectedPaymentTabText: {
-        color: Colors.primary,
-        fontWeight: typography.weight.bold,
     },
     footer: {
         position: 'absolute',

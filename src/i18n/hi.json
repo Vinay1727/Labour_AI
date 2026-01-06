@@ -149,5 +149,16 @@
     "please_add_worker": "कृपया कम से कम 1 मजदूर जोड़ें",
     "length": "लंबाई",
     "height": "ऊंचाई",
-    "ft": "फीट"
+    "ft": "फीट",
+    "additional_requirements_label": "काम की अन्य शर्तें (वैकल्पिक)",
+    "additional_requirements_placeholder": "उदाहरण: आवश्यक उपकरण, काम की क्वालिटी, समय की पसंद",
+    "additional_requirements_helper": "अपने शब्दों में काम को समझाएं",
+    "custom_days": "कस्टम दिन",
+    "enter_days": "दिनों की संख्या भरें",
+    "per_day": "प्रति दिन",
+    "fixed_contract": "फिक्स्ड / कॉन्ट्रैक्ट",
+    "approx_payment_label": "पेमेंट",
+    "payment_amount_placeholder": "रकम भरें",
+    "requirements_per_skill": "हर स्किल की जरूरतें",
+    "per_skill_details": "हर स्किल के लिए मजदूर और पेमेंट भरें"
 }
