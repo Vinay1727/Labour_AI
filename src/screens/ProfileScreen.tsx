@@ -19,15 +19,21 @@ export default function ProfileScreen() {
     const { t } = useTranslation();
 
     // User Data from Auth or Mock
+    const formatLocation = (loc: any) => {
+        if (!loc) return 'Noida, Sector 62';
+        if (typeof loc === 'string') return loc;
+        return `${loc.area || 'Noida'}, ${loc.city || 'Sector 62'}`;
+    };
+
     const userData = {
         name: user?.name || 'Vinay Badnoriya',
         role: role || 'labour',
-        location: user?.location || 'Noida, Sector 62',
+        location: formatLocation(user?.location),
         phone: user?.phone || '+91 9876543210',
         skill: user?.skill || 'Painter / पेंटर',
         experience: user?.experience || '5',
         rating: '4.8',
-        isVerified: true, // Fixed badge logic
+        isVerified: true,
         jobsPosted: 12,
         activeJobs: 3,
     };

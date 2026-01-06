@@ -21,6 +21,7 @@ import { AppButton } from '../components/common/AppButton';
 import { useTranslation } from '../context/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import api from '../services/api';
 
 interface SkillRequirement {
     id: string;
@@ -156,12 +157,18 @@ export default function PostNewWorkScreen({ navigation }: any) {
         return true;
     };
 
-    const handlePostWork = () => {
+    const handlePostWork = async () => {
         setIsLoading(true);
 
         const currentDuration = durations.find(d => d.label === durationLabel);
 
         const payload = {
+            workType: selectedSkills[0].id, // Primary type for now
+            requiredWorkers: selectedSkills.reduce((acc, curr) => acc + curr.count, 0),
+            paymentAmount: selectedSkills[0].payment.amount || 0,
+            paymentType: selectedSkills[0].payment.type,
+
+            // Rich payload for full details
             skills: selectedSkills.map(s => ({
                 skillType: s.id,
                 requiredCount: s.count,
@@ -175,19 +182,27 @@ export default function PostNewWorkScreen({ navigation }: any) {
                 height: parseFloat(workSize.height) || null
             } : null,
             images,
-            durationType: currentDuration?.type || 'fixed',
-            customDays: currentDuration?.type === 'custom' ? parseInt(customDays) : null,
-            additionalRequirements: additionalRequirements || null,
-            location: location,
+            description: additionalRequirements,
+            location: location ? {
+                type: 'Point',
+                coordinates: [location.longitude, location.latitude],
+                address: location.address
+            } : undefined,
+            status: 'open'
         };
 
-        console.log('Post Work Payload:', payload);
-
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false);
+        try {
+            console.log('Sending Post Work Payload:', payload);
+            const response = await api.post('/jobs', payload);
+            console.log('Post Work Response:', response.data);
+            Alert.alert('Success', 'Work posted successfully!');
             navigation.goBack();
-        }, 1500);
+        } catch (error: any) {
+            console.error('Post Work Error:', error.response?.data || error.message);
+            Alert.alert('Error', error.response?.data?.message || 'Failed to post work');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const Stepper = ({ value, onChange, max = 20 }: any) => (

@@ -28,7 +28,7 @@ export default function EditProfileScreen({ navigation }: any) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: user?.name || '',
-        location: user?.location || '',
+        location: typeof user?.location === 'object' ? `${user.location.area}, ${user.location.city}` : user?.location || '',
         skill: user?.skill || '',
         experience: user?.experience?.toString() || '',
         workType: user?.workType || 'Daily',
@@ -38,9 +38,10 @@ export default function EditProfileScreen({ navigation }: any) {
 
     const hasChanges = () => {
         if (!user) return true;
+        const currentLocationStr = typeof user.location === 'object' ? `${user.location.area}, ${user.location.city}` : user.location;
         return (
             formData.name !== user.name ||
-            formData.location !== user.location ||
+            formData.location !== currentLocationStr ||
             formData.skill !== user.skill ||
             formData.experience !== user.experience?.toString() ||
             formData.workType !== user.workType ||
@@ -61,7 +62,15 @@ export default function EditProfileScreen({ navigation }: any) {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
             if (updateProfile) {
-                await updateProfile(formData);
+                const parts = formData.location.split(',');
+                const locationObj = {
+                    area: parts[0]?.trim() || 'Noida',
+                    city: parts[1]?.trim() || 'Noida'
+                };
+                await updateProfile({
+                    ...formData,
+                    location: locationObj
+                } as any);
             }
 
             Alert.alert("Success", "Profile updated successfully", [

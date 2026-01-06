@@ -44,7 +44,7 @@ export default function LanguageSelectionScreen({ route, navigation }: any) {
         if (fromSettings) {
             navigation.goBack();
         } else {
-            navigation.navigate('UserDetails');
+            navigation.navigate('Login');
         }
     };
 

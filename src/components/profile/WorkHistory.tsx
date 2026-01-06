@@ -79,7 +79,9 @@ export const WorkHistory = ({ role, userId }: WorkHistoryProps) => {
                 </View>
                 <View style={styles.infoRow}>
                     <AppIcon name="location-outline" size={16} color={Colors.textSecondary} />
-                    <Text style={styles.infoValue}>{item.location}</Text>
+                    <Text style={styles.infoValue}>
+                        {typeof item.location === 'object' ? `${(item.location as any).area}, ${(item.location as any).city}` : item.location}
+                    </Text>
                 </View>
             </View>
         </View>

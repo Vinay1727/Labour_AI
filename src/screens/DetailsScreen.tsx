@@ -34,8 +34,7 @@ export default function DetailsScreen({ route, navigation }: any) {
                     jobsCompleted: 45,
                     avgRating: 4.8,
                     lastActive: '10 mins ago',
-                    area: 'Sector 62',
-                    city: 'Noida',
+                    location: { area: 'Sector 62', city: 'Noida' },
                     verified: true,
                 });
             } else {
@@ -43,8 +42,7 @@ export default function DetailsScreen({ route, navigation }: any) {
                     id: itemId || 'job_456',
                     title: 'House Painting',
                     status: status,
-                    area: 'DLF Phase 3',
-                    city: 'Gurgaon',
+                    location: { area: 'DLF Phase 3', city: 'Gurgaon' },
                     duration: '3 Days',
                     payment: '₹600/day',
                     labourRequired: 5,
@@ -162,8 +160,10 @@ export default function DetailsScreen({ route, navigation }: any) {
                 <View style={styles.locationBox}>
                     <AppIcon name="location-outline" size={24} color={Colors.primary} />
                     <View>
-                        <Text style={styles.locationMain}>{data.area}, {data.city}</Text>
-                        <Text style={styles.locationSub}>Noida, Uttar Pradesh</Text>
+                        <Text style={styles.locationMain}>
+                            {data.location?.area}, {data.location?.city}
+                        </Text>
+                        <Text style={styles.locationSub}>Uttar Pradesh</Text>
                     </View>
                 </View>
             </View>
@@ -193,7 +193,9 @@ export default function DetailsScreen({ route, navigation }: any) {
                 <Text style={styles.jobTitle}>{data.title}</Text>
                 <View style={styles.locationTag}>
                     <AppIcon name="location-outline" size={16} color={Colors.textSecondary} />
-                    <Text style={styles.locationTagText}>{data.area}, {data.city}</Text>
+                    <Text style={styles.locationTagText}>
+                        {data.location?.area}, {data.location?.city}
+                    </Text>
                 </View>
             </View>
 
