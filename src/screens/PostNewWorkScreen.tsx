@@ -193,7 +193,7 @@ export default function PostNewWorkScreen({ navigation }: any) {
 
         try {
             console.log('Sending Post Work Payload:', payload);
-            const response = await api.post('/jobs', payload);
+            const response = await api.post('jobs', payload);
             console.log('Post Work Response:', response.data);
             Alert.alert('Success', 'Work posted successfully!');
             navigation.goBack();

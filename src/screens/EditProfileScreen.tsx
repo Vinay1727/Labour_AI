@@ -29,7 +29,8 @@ export default function EditProfileScreen({ navigation }: any) {
     const [formData, setFormData] = useState({
         name: user?.name || '',
         location: typeof user?.location === 'object' ? `${user.location.area}, ${user.location.city}` : user?.location || '',
-        skill: user?.skill || '',
+        skills: user?.skills || [],
+        isSkilled: user?.isSkilled ?? false,
         experience: user?.experience?.toString() || '',
         workType: user?.workType || 'Daily',
         availability: user?.availability || 'Available',
@@ -42,7 +43,8 @@ export default function EditProfileScreen({ navigation }: any) {
         return (
             formData.name !== user.name ||
             formData.location !== currentLocationStr ||
-            formData.skill !== user.skill ||
+            JSON.stringify(formData.skills) !== JSON.stringify(user.skills || []) ||
+            formData.isSkilled !== user.isSkilled ||
             formData.experience !== user.experience?.toString() ||
             formData.workType !== user.workType ||
             formData.availability !== user.availability ||
@@ -146,11 +148,13 @@ export default function EditProfileScreen({ navigation }: any) {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>{t('primary_skill')}</Text>
                                 <TextInput
-                                    style={styles.input}
-                                    value={formData.skill}
-                                    onChangeText={(val) => setFormData({ ...formData, skill: val })}
+                                    style={[styles.input, styles.disabledInput]}
+                                    value={formData.skills.join(', ')}
+                                    editable={false}
                                     placeholder="e.g. Painter, Mistri"
                                 />
+                                <Text style={styles.helperText}>Skills can be changed via onboarding flow (Coming soon in Edit)</Text>
+
                             </View>
 
                             <View style={styles.inputGroup}>
@@ -247,6 +251,12 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: spacing.l,
+    },
+    helperText: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+        marginTop: 4,
+        fontStyle: 'italic',
     },
     section: {
         marginBottom: spacing.xl,

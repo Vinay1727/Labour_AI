@@ -1,5 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    TextInput,
+    FlatList,
+    ActivityIndicator,
+    Alert,
+    RefreshControl
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
 import { Colors } from '../theme/colors';
@@ -9,345 +20,221 @@ import { useAuth } from '../context/AuthContext';
 import { WorkCard } from '../components/search/WorkCard';
 import { LabourCard } from '../components/search/LabourCard';
 import { AppButton } from '../components/common/AppButton';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
 import { Job, Labour } from '../types/search';
-
-// Standardized Mock Data following API Contract
-const MOCK_JOBS: Job[] = [
-    {
-        jobId: 'job_1',
-        workType: 'House Painter',
-        description: 'Need a professional painter for a 3BHK flat.',
-        location: { area: 'Sec 62', city: 'Noida' },
-        distanceKm: 1.2,
-        duration: '3 Days',
-        payment: { amount: 600, unit: 'per day' },
-        contractor: { contractorId: 'con_1', name: 'Rakesh Verma' },
-        status: 'open',
-        createdAt: new Date().toISOString()
-    },
-    {
-        jobId: 'job_2',
-        workType: 'Brick Specialist',
-        description: 'Wall construction work for a new house.',
-        location: { area: 'Indirapuram', city: 'Ghaziabad' },
-        distanceKm: 2.5,
-        duration: 'Contract',
-        payment: { amount: 8000, unit: 'total' },
-        contractor: { contractorId: 'con_2', name: 'Smart Builders' },
-        status: 'open',
-        createdAt: new Date().toISOString()
-    },
-];
-
-const MOCK_LABOURS: Labour[] = [
-    {
-        labourId: 'lab_1',
-        name: 'Sunil Kumar',
-        skill: 'Mistri (Mason)',
-        experienceYears: 5,
-        location: { area: 'Noida Sec 15', city: 'Noida' },
-        rating: 4.8,
-        availability: 'today',
-        lastActive: new Date().toISOString()
-    },
-    {
-        labourId: 'lab_2',
-        name: 'Ramesh Singh',
-        skill: 'Painter',
-        experienceYears: 8,
-        location: { area: 'Sec 44', city: 'Gurgaon' },
-        rating: 4.9,
-        availability: 'tomorrow',
-        lastActive: new Date().toISOString()
-    },
-];
+import api from '../services/api';
+import * as Location from 'expo-location';
 
 export default function SearchScreen() {
-    const { role } = useAuth();
+    const { role, user } = useAuth();
     const navigation = useNavigation<any>();
+    const isFocused = useIsFocused();
     const { t } = useTranslation();
+
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [labours, setLabours] = useState<Labour[]>([]);
+    const [insights, setInsights] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Filters
+    const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
+    const [distanceKm, setDistanceKm] = useState<number>(25);
+    const [paymentType, setPaymentType] = useState<string | null>(null);
+    const [minRating, setMinRating] = useState<number | null>(null);
+    const [userLocation, setUserLocation] = useState<any>(null);
 
     const isLabour = role === 'labour';
 
-    const config = useMemo(() => {
-        if (isLabour) {
-            return {
-                title: t('search_work'),
-                helper: t('nearby_work_for_you'),
-                placeholder: t('search_placeholder_work'),
-                categories: ['All', 'Painter', 'Mistri', 'Helper', 'Electrician', 'Daily Work', 'Contract'],
-                emptyTitle: t('no_work_found_nearby'),
-                emptySub: t('try_changing_filters'),
-            };
-        }
-        return {
-            title: t('find_labour'),
-            helper: t('search_skilled_labour_near'),
-            placeholder: t('search_placeholder_labour'),
-            categories: ['All', 'Painter', 'Mistri', 'Helper', 'Skilled', 'Available Now'],
-            emptyTitle: t('no_labour_available'),
-            emptySub: t('post_new_work_more_responses'),
-        };
-    }, [isLabour, t]);
-
-    const navigateToDetails = (id: string) => {
-        navigation.navigate('Details', { itemId: id, itemType: isLabour ? 'job' : 'labour' });
+    const getMyLocation = async () => {
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') return;
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            setUserLocation(loc.coords);
+            return loc.coords;
+        } catch (e) { console.log('Location error', e); }
     };
 
-    return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.title}>{config.title}</Text>
-                    <Text style={styles.subTitle}>{config.helper}</Text>
-                </View>
-                {!isLabour && (
-                    <TouchableOpacity
-                        style={styles.postBtnMini}
-                        onPress={() => navigation.navigate('PostNewWork')}
-                    >
-                        <AppIcon name="add" size={20} color={Colors.white} />
-                        <Text style={styles.postBtnMiniText}>{t('apply')}</Text>
-                    </TouchableOpacity>
-                )}
+    const fetchResults = useCallback(async (isRefresh = false) => {
+        if (!isRefresh) setLoading(true);
+        try {
+            let loc = userLocation || await getMyLocation();
+            const params: any = {
+                q: searchQuery,
+                distance: distanceKm,
+                lat: loc?.latitude,
+                lng: loc?.longitude
+            };
+
+            if (selectedSkill) params.skill = selectedSkill;
+            if (isLabour && paymentType) params.paymentType = paymentType;
+            if (!isLabour && minRating) params.rating = minRating;
+
+            const res = await api.get('search', { params });
+            if (res.data.success) {
+                const { type, results } = res.data.data;
+                if (type === 'jobs') setJobs(results);
+                else setLabours(results);
+            }
+
+            if (!isLabour) {
+                const insightRes = await api.get('users/skill-insights', { params: { ...params, distance: 10 } });
+                if (insightRes.data.success) setInsights(insightRes.data.data);
+            }
+        } catch (err) { console.error('Search Fetch Error:', err); }
+        finally { setLoading(false); setRefreshing(false); }
+    }, [isLabour, searchQuery, distanceKm, selectedSkill, paymentType, minRating, userLocation]);
+
+    useEffect(() => {
+        if (isFocused) fetchResults();
+    }, [isFocused, distanceKm, selectedSkill, paymentType, minRating]);
+
+    const handleApply = async (jobId: string) => {
+        try {
+            const res = await api.post(`jobs/${jobId}/apply`);
+            if (res.data.success) {
+                Alert.alert(t('success' as any), t('application_submitted' as any));
+                setJobs(prev => prev.filter(j => j._id !== jobId));
+            }
+        } catch (err: any) { Alert.alert('Error', err.response?.data?.message || 'Application failed'); }
+    };
+
+    const renderInsights = () => {
+        if (isLabour || insights.length === 0) return null;
+        return (
+            <View style={styles.insightSection}>
+                <Text style={styles.insightTitle}>{t('available_near_you' as any)}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.insightScroll}>
+                    {insights.slice(0, 5).map(item => (
+                        <View key={item._id} style={styles.insightCard}>
+                            <Text style={styles.insightSkill}>{item._id}</Text>
+                            <Text style={styles.insightCount}>{item.count}</Text>
+                        </View>
+                    ))}
+                </ScrollView>
             </View>
+        );
+    };
 
-            {/* Role Warning for Labour */}
-            {isLabour && (
-                <View style={styles.warningBox}>
-                    <AppIcon name="alert-circle" size={18} color="#B45309" />
-                    <Text style={styles.warningText}>{t('complete_active_work_applying')}</Text>
-                </View>
-            )}
-
-            {/* Search Input */}
-            <View style={styles.searchContainer}>
+    const renderHeader = () => (
+        <View style={styles.header}>
+            <View style={styles.searchBarContainer}>
                 <View style={styles.searchBar}>
                     <AppIcon name="search-outline" size={20} color={Colors.textSecondary} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder={config.placeholder}
+                        placeholder={isLabour ? t('search_placeholder_work' as any) : t('search_placeholder_labour' as any)}
                         placeholderTextColor={Colors.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
+                        onSubmitEditing={() => fetchResults()}
+                        returnKeyType="search"
                     />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <AppIcon name="close-circle" size={20} color={Colors.textSecondary} />
-                        </TouchableOpacity>
-                    )}
                 </View>
             </View>
 
-            {/* Filter Chips */}
-            <View style={styles.filtersContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-                    {config.categories.map((cat) => (
-                        <TouchableOpacity
-                            key={cat}
-                            style={[
-                                styles.chip,
-                                selectedCategory === cat && styles.selectedChip
-                            ]}
-                            onPress={() => setSelectedCategory(cat)}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={[
-                                styles.chipText,
-                                selectedCategory === cat && styles.selectedChipText
-                            ]}>{cat}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+                <FilterChip
+                    label={distanceKm === 100 ? t('all_distances' as any) : `${distanceKm} km`}
+                    icon="navigate-outline"
+                    onPress={() => setDistanceKm(distanceKm === 5 ? 10 : distanceKm === 10 ? 25 : distanceKm === 25 ? 100 : 5)}
+                    active={distanceKm !== 100}
+                />
+                {!isLabour && (
+                    <FilterChip
+                        label="4.0+" icon="star"
+                        active={minRating === 4}
+                        onPress={() => setMinRating(minRating === 4 ? null : 4)}
+                    />
+                )}
+                {isLabour && (
+                    <>
+                        <FilterChip label={t('per_day' as any)} active={paymentType === 'per_day'} onPress={() => setPaymentType(paymentType === 'per_day' ? null : 'per_day')} />
+                        <FilterChip label={t('fixed_contract' as any)} active={paymentType === 'fixed'} onPress={() => setPaymentType(paymentType === 'fixed' ? null : 'fixed')} />
+                    </>
+                )}
+            </ScrollView>
+        </View>
+    );
 
-            {/* Logic-Based List Rendering */}
+    return (
+        <SafeAreaView style={styles.container} edges={['top']}>
+            {renderHeader()}
+
             <FlatList
-                data={isLabour ? MOCK_JOBS : MOCK_LABOURS}
-                keyExtractor={(item: any) => isLabour ? item.jobId : item.labourId}
-                contentContainerStyle={styles.resultsList}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }: { item: any }) => (
+                data={isLabour ? jobs : labours}
+                keyExtractor={(item: any) => item._id}
+                contentContainerStyle={styles.listContent}
+                ListHeaderComponent={renderInsights()}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchResults(true); }} />}
+                renderItem={({ item }) => (
                     isLabour ? (
                         <WorkCard
                             work={item as Job}
-                            onApply={() => { }}
-                            onViewDetails={(id) => navigateToDetails(id)}
+                            onApply={handleApply}
+                            onViewDetails={(jobId) => navigation.navigate('Details', { itemId: jobId, itemType: 'job' })}
                         />
                     ) : (
                         <LabourCard
                             labour={item as Labour}
-                            onContact={(id) => navigation.navigate('Messages')}
-                            onViewProfile={(id) => navigateToDetails(id)}
+                            onContact={() => navigation.navigate('Messages')}
+                            onViewProfile={(l) => navigation.navigate('Details', {
+                                itemId: l._id,
+                                itemType: 'labour',
+                                name: l.name,
+                                skills: l.skills
+                            })}
                         />
                     )
                 )}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <View style={styles.emptyIconCircle}>
-                            <AppIcon name="search" size={40} color={Colors.border} />
-                        </View>
-                        <Text style={styles.emptyTitle}>{config.emptyTitle}</Text>
-                        <Text style={styles.emptySub}>{config.emptySub}</Text>
-                        {!isLabour && (
-                            <AppButton
-                                title={t('post_new_work')}
-                                onPress={() => navigation.navigate('PostNewWork')}
-                                style={styles.postBtnLarge}
-                            />
-                        )}
+                        <AppIcon name="search-outline" size={60} color={Colors.border} />
+                        <Text style={styles.emptyTitle}>{isLabour ? "No matching jobs found nearby" : "No labour found"}</Text>
                     </View>
                 }
             />
+
+            {!isLabour && searchQuery && (
+                <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('PostNewWork', { skill: searchQuery })}>
+                    <AppIcon name="add" size={24} color={Colors.white} />
+                    <Text style={styles.fabText}>Post Job for {searchQuery}</Text>
+                </TouchableOpacity>
+            )}
         </SafeAreaView>
     );
 }
 
+const FilterChip = ({ label, active, onPress, icon }: any) => (
+    <TouchableOpacity style={[styles.chip, active && styles.activeChip]} onPress={onPress}>
+        {icon && <AppIcon name={icon} size={14} color={active ? Colors.white : Colors.primary} />}
+        <Text style={[styles.chipText, active && styles.activeChipText]}>{label}</Text>
+    </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.background,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: spacing.l,
-        paddingVertical: spacing.md,
-        backgroundColor: Colors.white,
-    },
-    title: {
-        fontSize: typography.size.screenHeading,
-        fontWeight: typography.weight.bold,
-        color: Colors.textPrimary,
-    },
-    subTitle: {
-        fontSize: 14,
-        color: Colors.textSecondary,
-    },
-    postBtnMini: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 10,
-        gap: 4,
-    },
-    postBtnMiniText: {
-        color: Colors.white,
-        fontWeight: typography.weight.bold,
-        fontSize: 14,
-    },
-    warningBox: {
-        flexDirection: 'row',
-        backgroundColor: '#FFFBEB',
-        marginHorizontal: spacing.l,
-        marginTop: spacing.sm,
-        padding: 10,
-        borderRadius: 10,
-        alignItems: 'center',
-        gap: 8,
-        borderWidth: 1,
-        borderColor: '#FEF3C7',
-    },
-    warningText: {
-        fontSize: 12,
-        color: '#92400E',
-        fontWeight: typography.weight.medium,
-        flex: 1,
-    },
-    searchContainer: {
-        paddingHorizontal: spacing.l,
-        paddingVertical: spacing.md,
-    },
-    searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        height: 54,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        elevation: 2,
-        shadowColor: Colors.black,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-    },
-    searchInput: {
-        flex: 1,
-        marginLeft: 10,
-        fontSize: 16,
-        color: Colors.textPrimary,
-    },
-    filtersContainer: {
-        marginBottom: spacing.md,
-    },
-    filterScroll: {
-        paddingHorizontal: spacing.l,
-        gap: 10,
-    },
-    chip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    selectedChip: {
-        backgroundColor: Colors.primary,
-        borderColor: Colors.primary,
-    },
-    chipText: {
-        fontSize: 14,
-        color: Colors.textPrimary,
-        fontWeight: typography.weight.medium,
-    },
-    selectedChipText: {
-        color: Colors.white,
-        fontWeight: typography.weight.bold,
-    },
-    resultsList: {
-        paddingHorizontal: spacing.l,
-        paddingBottom: 100,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 60,
-        paddingHorizontal: spacing.xl,
-    },
-    emptyIconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: Colors.textInput,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    emptyTitle: {
-        fontSize: 18,
-        fontWeight: typography.weight.bold,
-        color: Colors.textPrimary,
-        textAlign: 'center',
-    },
-    emptySub: {
-        fontSize: 14,
-        color: Colors.textSecondary,
-        textAlign: 'center',
-        marginTop: 8,
-        marginBottom: 24,
-    },
-    postBtnLarge: {
-        width: '100%',
-    }
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: { backgroundColor: Colors.white, paddingBottom: spacing.md, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, elevation: 10 },
+    searchBarContainer: { paddingHorizontal: spacing.l, paddingTop: spacing.md, marginBottom: spacing.md },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 20, paddingHorizontal: 16, height: 56 },
+    searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: Colors.textPrimary, fontWeight: '500' },
+    filterScroll: { paddingHorizontal: spacing.l, gap: 10 },
+    chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 15, borderWidth: 1, borderColor: '#E2E8F0', gap: 6 },
+    activeChip: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+    chipText: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
+    activeChipText: { color: Colors.white },
+    listContent: { padding: spacing.l, paddingBottom: 100 },
+    insightSection: { marginTop: spacing.md, marginBottom: spacing.sm },
+    insightTitle: { fontSize: 14, fontWeight: 'bold', color: Colors.textSecondary, marginBottom: 12, marginLeft: 4 },
+    insightScroll: { gap: 12 },
+    insightCard: { backgroundColor: Colors.white, padding: 12, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: Colors.primary, width: 100, alignItems: 'center' },
+    insightSkill: { fontSize: 12, fontWeight: 'bold', color: Colors.textPrimary, textAlign: 'center' },
+    insightCount: { fontSize: 18, fontWeight: '900', color: Colors.primary, marginTop: 4 },
+    emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 80, paddingHorizontal: 40 },
+    emptyTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.textPrimary, marginTop: 20, textAlign: 'center' },
+    fab: { position: 'absolute', bottom: 30, left: 30, right: 30, backgroundColor: Colors.secondary, height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 10 },
+    fabText: { color: Colors.white, fontWeight: '900', fontSize: 16 }
 });

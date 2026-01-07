@@ -18,6 +18,7 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { AppButton } from '../components/common/AppButton';
 import { useTranslation } from '../context/LanguageContext';
+import api from '../services/api';
 
 export default function RatingScreen({ route, navigation }: any) {
     const { t } = useTranslation();
@@ -34,22 +35,33 @@ export default function RatingScreen({ route, navigation }: any) {
         5: t('excellent')
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (stars === 0) {
             Alert.alert(t('selection_required'), t('please_rate'));
             return;
         }
 
         setSubmitting(true);
-        // Simulate API Call
-        setTimeout(() => {
+        try {
+            const res = await api.post('reviews', {
+                dealId,
+                reviewedUserId: ratedUserId,
+                rating: stars,
+                comment: review
+            });
+
+            if (res.data.success) {
+                Alert.alert(
+                    t('thank_you'),
+                    t('rating_submitted'),
+                    [{ text: "OK", onPress: () => navigation.goBack() }]
+                );
+            }
+        } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || 'Failed to submit rating');
+        } finally {
             setSubmitting(false);
-            Alert.alert(
-                t('thank_you'),
-                t('rating_submitted'),
-                [{ text: "OK", onPress: () => navigation.goBack() }]
-            );
-        }, 1200);
+        }
     };
 
     return (

@@ -10,7 +10,12 @@ export interface IUser extends Document {
         address?: string;
     };
     skills?: string[]; // For labour
+    isSkilled?: boolean; // For labour
     isVerified: boolean;
+    averageRating: number;
+    reviewCount: number;
+    rank: 'Top Labour' | 'Trusted' | 'Reliable' | 'Average' | 'Risky';
+    trustScore: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -25,7 +30,16 @@ const UserSchema: Schema = new Schema({
         address: { type: String }
     },
     skills: { type: [String], default: [] },
-    isVerified: { type: Boolean, default: false }
+    isSkilled: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: false },
+    averageRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
+    rank: {
+        type: String,
+        enum: ['Top Labour', 'Trusted', 'Reliable', 'Average', 'Risky'],
+        default: 'Average'
+    },
+    trustScore: { type: Number, default: 0 }
 }, {
     timestamps: true
 });

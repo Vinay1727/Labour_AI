@@ -9,6 +9,9 @@ import jobRoutes from './routes/job.routes';
 import dealRoutes from './routes/deal.routes';
 import attendanceRoutes from './routes/attendance.routes';
 import reviewRoutes from './routes/review.routes';
+import searchRoutes from './routes/search.routes';
+import messageRoutes from './routes/message.routes';
+import notificationRoutes from './routes/notification.routes';
 
 const app = express();
 
@@ -35,6 +38,9 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/deals', dealRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Catch-all for debugging 404s
 app.use('*', (req, res) => {

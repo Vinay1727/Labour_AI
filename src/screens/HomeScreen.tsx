@@ -1,32 +1,47 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
 import api from '../services/api';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-    const { role } = useAuth();
+    const { role, user } = useAuth();
     const navigation = useNavigation<any>();
     const { t } = useTranslation();
     const [availableJobs, setAvailableJobs] = React.useState<any[]>([]);
+    const [unreadCount, setUnreadCount] = React.useState(0);
+
+    const isFocused = useIsFocused();
 
     React.useEffect(() => {
-        if (role === 'labour') {
+        if (isFocused) {
             fetchJobs();
+            fetchUnreadCount();
         }
-    }, [role]);
+    }, [isFocused, role]);
+
+    const fetchUnreadCount = async () => {
+        try {
+            const res = await api.get('notifications');
+            if (res.data.success) {
+                setUnreadCount(res.data.unreadCount || 0);
+            }
+        } catch (err) {
+            console.error('Fetch Unread Count Error:', err);
+        }
+    };
 
     const fetchJobs = async () => {
         try {
-            const res = await api.get('/jobs');
+            const res = await api.get('jobs');
             if (res.data.success) {
                 setAvailableJobs(res.data.data);
             }
@@ -37,9 +52,9 @@ export default function HomeScreen() {
 
     const handleApply = async (jobId: string) => {
         try {
-            const res = await api.post('/deals/apply', { jobId });
+            const res = await api.post(`jobs/${jobId}/apply`);
             if (res.data.success) {
-                Alert.alert('Applied', 'You have successfully applied for this job.');
+                Alert.alert(t('success'), t('application_submitted'));
                 fetchJobs();
             }
         } catch (err: any) {
@@ -55,7 +70,13 @@ export default function HomeScreen() {
                     <Text style={styles.greeting}>{t('hello')} 👋</Text>
                     <Text style={styles.subGreeting}>{t('find_labour_near')}</Text>
                 </View>
-                <AppIcon name="notifications-outline" size={24} color={Colors.textPrimary} />
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('Notification')}
+                    style={styles.notifBtn}
+                >
+                    <AppIcon name="notifications-outline" size={26} color={Colors.textPrimary} />
+                    {unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>}
+                </TouchableOpacity>
             </View>
 
             {/* Primary Action Card */}
@@ -75,27 +96,45 @@ export default function HomeScreen() {
 
             {/* Active Requests Section */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('in_progress')}</Text>
-                {[1, 2].map((item) => (
+                <Text style={styles.sectionTitle}>{t('your_posted_jobs')}</Text>
+                {availableJobs.map((item, index) => (
                     <TouchableOpacity
-                        key={item}
+                        key={item._id || index.toString()}
                         style={styles.requestCard}
-                        onPress={() => navigation.navigate('Details', { itemId: item.toString(), itemType: 'job' })}
+                        onPress={() => navigation.navigate('JobApplications', { jobId: item._id })}
                     >
                         <View style={styles.requestInfo}>
-                            <Text style={styles.workType}>House Painting</Text>
+                            <Text style={styles.workType}>{item.workType}</Text>
                             <View style={styles.locationRow}>
                                 <AppIcon name="location-outline" size={14} color={Colors.textLight} />
-                                <Text style={styles.locationText}>Sec 14, Gurgaon</Text>
+                                <Text style={styles.locationText}>{item.location?.address || 'Location'}</Text>
                             </View>
+                            <Text style={styles.appliedCountText}>
+                                {item.filledWorkers} / {item.requiredWorkers} Workers • {item.applications?.length || 0} Applied
+                            </Text>
                         </View>
-                        <View style={[styles.statusBadge, { backgroundColor: item === 1 ? '#FEF3C7' : '#D1FAE5' }]}>
-                            <Text style={[styles.statusText, { color: item === 1 ? '#B45309' : '#059669' }]}>
-                                {item === 1 ? t('pending') : t('completed')}
+                        <View style={[styles.statusBadge, {
+                            backgroundColor: item.status === 'open' ? '#FEF3C7' :
+                                item.status === 'in_progress' ? '#DBEAFE' :
+                                    item.status === 'completed' ? '#D1FAE5' : '#F3F4F6'
+                        }]}>
+                            <Text style={[styles.statusText, {
+                                color: item.status === 'open' ? '#B45309' :
+                                    item.status === 'in_progress' ? Colors.primary :
+                                        item.status === 'completed' ? '#059669' : Colors.textSecondary
+                            }]}>
+                                {item.status === 'completed' ? t('finished').toUpperCase() :
+                                    item.status === 'in_progress' ? t('in_progress').toUpperCase() :
+                                        item.status.toUpperCase()}
                             </Text>
                         </View>
                     </TouchableOpacity>
                 ))}
+                {availableJobs.length === 0 && (
+                    <View style={styles.emptySmall}>
+                        <Text style={styles.emptyText}>{t('no_jobs_posted')}</Text>
+                    </View>
+                )}
             </View>
 
             <View style={styles.tipCard}>
@@ -115,10 +154,13 @@ export default function HomeScreen() {
                         <Text style={styles.locationLabel}>Gurgaon, Haryana</Text>
                     </View>
                 </View>
-                <View style={styles.onlineStatus}>
-                    <Text style={styles.onlineText}>Online</Text>
-                    <View style={styles.onlineDot} />
-                </View>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('Notification')}
+                    style={styles.notifBtn}
+                >
+                    <AppIcon name="notifications-outline" size={26} color={Colors.textPrimary} />
+                    {unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>}
+                </TouchableOpacity>
             </View>
 
             <FlatList
@@ -126,34 +168,56 @@ export default function HomeScreen() {
                 keyExtractor={(item) => item._id}
                 contentContainerStyle={{ padding: spacing.layout.containerPaddding }}
                 ListHeaderComponent={<Text style={styles.sectionTitle}>{t('available_jobs')}</Text>}
-                renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={styles.jobCard}
-                        onPress={() => navigation.navigate('Details', { itemId: item._id, itemType: 'job' })}
-                    >
-                        <View style={styles.jobHeader}>
-                            <View>
-                                <Text style={styles.jobRoleTitle}>{item.workType}</Text>
-                                <Text style={styles.jobDistance}>
-                                    {item.location?.area ? `${item.location.area}, ${item.location.city}` : (item.location?.address || 'Location N/A')}
-                                </Text>
-                            </View>
-                            <Text style={styles.jobPrice}>₹{item.paymentAmount}</Text>
-                        </View>
+                renderItem={({ item }) => {
+                    const myApplication = item.applications?.find((app: any) => app.labourId === user?.id || app.labourId?._id === user?.id);
+                    const isApplied = !!myApplication;
 
-                        <View style={styles.jobActions}>
-                            <TouchableOpacity style={styles.ignoreButton}>
-                                <Text style={styles.ignoreButtonText}>{t('ignore')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.acceptButton}
-                                onPress={() => handleApply(item._id)}
-                            >
-                                <Text style={styles.acceptButtonText}>{t('apply')}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableOpacity>
-                )}
+                    return (
+                        <TouchableOpacity
+                            style={styles.jobCard}
+                            onPress={() => navigation.navigate('Details', { itemId: item._id, itemType: 'job' })}
+                        >
+                            <View style={styles.jobHeader}>
+                                <View>
+                                    <Text style={styles.jobRoleTitle}>{item.workType}</Text>
+                                    <Text style={styles.jobDistance}>
+                                        {item.location?.area ? `${item.location.area}, ${item.location.city}` : (item.location?.address || 'Location N/A')}
+                                    </Text>
+                                </View>
+                                <View style={{ alignItems: 'flex-end' }}>
+                                    <Text style={styles.jobPrice}>₹{item.paymentAmount}</Text>
+                                    {isApplied && (
+                                        <View style={[styles.statusBadge, {
+                                            backgroundColor: myApplication.status === 'pending' ? '#FEF3C7' : myApplication.status === 'approved' ? '#D1FAE5' : '#FEE2E2',
+                                            marginTop: 4
+                                        }]}>
+                                            <Text style={[styles.statusText, {
+                                                color: myApplication.status === 'pending' ? '#B45309' : myApplication.status === 'approved' ? '#059669' : '#DC2626'
+                                            }]}>
+                                                {myApplication.status.toUpperCase()}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+
+                            <View style={styles.jobActions}>
+                                <TouchableOpacity style={styles.ignoreButton}>
+                                    <Text style={styles.ignoreButtonText}>{t('ignore')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.acceptButton, isApplied && { backgroundColor: Colors.border }]}
+                                    onPress={() => !isApplied && handleApply(item._id)}
+                                    disabled={isApplied}
+                                >
+                                    <Text style={[styles.acceptButtonText, isApplied && { color: Colors.textSecondary }]}>
+                                        {isApplied ? t('pending_approval') : t('apply')}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                }}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <AppIcon name="search-outline" size={60} color={Colors.border} />
@@ -398,5 +462,37 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: Colors.textSecondary,
         marginTop: 16,
-    }
+    },
+    appliedCountText: {
+        fontSize: 12,
+        color: Colors.primary,
+        fontWeight: '600',
+        marginTop: 4,
+    },
+    emptySmall: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    notifBtn: {
+        position: 'relative',
+        padding: 8,
+    },
+    badge: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        backgroundColor: Colors.error,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: Colors.white,
+    },
+    badgeText: {
+        color: Colors.white,
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
 });

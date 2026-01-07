@@ -7,7 +7,7 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { AppButton } from '../components/common/AppButton';
 
-export default function RoleSelectionScreen() {
+export default function RoleSelectionScreen({ navigation }: any) {
     const { updateRole } = useAuth();
     const [selectedRole, setSelectedRole] = useState<'contractor' | 'labour' | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -16,8 +16,11 @@ export default function RoleSelectionScreen() {
         if (selectedRole) {
             setIsLoading(true);
             try {
-                await updateRole(selectedRole);
-                // AuthContext will update 'role' state -> RootNavigator moves to Main
+                if (selectedRole === 'contractor') {
+                    await updateRole(selectedRole);
+                } else {
+                    navigation.navigate('LabourOnboarding');
+                }
             } catch (e) {
                 console.error(e);
             } finally {

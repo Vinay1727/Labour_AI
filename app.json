@@ -4,10 +4,10 @@
     "slug": "labour-chowk",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "assets/images/logo.png",
+    "icon": "./assets/images/logo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "assets/images/logo.png",
+      "image": "./assets/images/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -15,16 +15,18 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.labourchowk.app"
     },
     "android": {
+      "package": "com.labourchowk.app",
       "adaptiveIcon": {
-        "foregroundImage": "assets/images/logo.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundColor": "#4F46E5"
       }
     },
     "web": {
-      "favicon": "assets/favicon.png"
+      "bundler": "metro"
     },
     "plugins": [
       "expo-asset",

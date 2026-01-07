@@ -11,6 +11,8 @@ interface User {
     area: string;
     city: string;
   };
+  skills?: string[];
+  isSkilled?: boolean;
   skill?: string;
   experience?: string;
   workType?: string;
@@ -96,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkUser = async (phone: string) => {
     try {
-      const res = await api.post('/auth/request-otp', { phone });
+      const res = await api.post('auth/request-otp', { phone });
       return res.data.data;
     } catch (error) {
       console.error('Check User Error:', error);
@@ -105,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const verifyOtp = async (phone: string, otp: string, name?: string) => {
-    const res = await api.post('/auth/verify-otp', { phone, otp, name });
+    const res = await api.post('auth/verify-otp', { phone, otp, name });
     const data = res.data.data;
 
     if (data.token && data.user) {
@@ -123,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (phone: string, roleType: Role, name?: string) => {
     try {
-      const res = await api.post('/auth/verify-otp', {
+      const res = await api.post('auth/verify-otp', {
         phone,
         otp: '1234',
         name,
@@ -159,7 +161,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateProfile = async (newData: Partial<User>) => {
     try {
-      const res = await api.put('/users/profile', newData);
+      const res = await api.put('users/profile', newData);
       if (res.data.success) {
         const normalizedUser = normalizeUser(res.data.data);
         await SecureStore.setItemAsync('userData', JSON.stringify(normalizedUser));
@@ -177,7 +179,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateRole = async (newRole: Role) => {
     try {
-      const res = await api.put('/users/profile', { role: newRole });
+      const res = await api.put('users/profile', { role: newRole });
       if (res.data.success) {
         const normalizedUser = normalizeUser(res.data.data);
         await SecureStore.setItemAsync('userData', JSON.stringify(normalizedUser));

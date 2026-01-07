@@ -12,6 +12,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import LanguageSelectionScreen from '../screens/LanguageSelectionScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
 import AttendanceHistoryScreen from '../screens/AttendanceHistoryScreen';
+import JobApplicationsScreen from '../screens/JobApplicationsScreen';
+import NotificationScreen from '../screens/NotificationScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -32,6 +34,8 @@ export default function RootNavigator() {
           <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
           <Stack.Screen name="Attendance" component={AttendanceScreen} />
           <Stack.Screen name="AttendanceHistory" component={AttendanceHistoryScreen} />
+          <Stack.Screen name="JobApplications" component={JobApplicationsScreen} />
+          <Stack.Screen name="Notification" component={NotificationScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />
