@@ -7,12 +7,13 @@ import { spacing } from '../theme/spacing';
 import { useAuth } from '../context/AuthContext';
 import { StatusTab } from '../components/deals/StatusTab';
 import { DealCard } from '../components/deals/DealCard';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
 import { DealStatus, Deal } from '../types/deals';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/rootReducer';
 import { setDeals } from '../features/deals/slice';
+import api from '../services/api';
 
 const MOCK_DEALS: Deal[] = [
     {
@@ -74,61 +75,80 @@ export default function DealsScreen() {
     // Select from Redux
     const deals = useSelector((state: RootState) => state.deals.deals);
 
-    const [activeTab, setActiveTab] = useState<DealStatus | 'All'>('active');
+    const [activeTab, setActiveTab] = useState<'applied' | 'active' | 'completed'>('active');
+    const [loading, setLoading] = useState(false);
 
-    // Init data
+    const isFocused = useIsFocused();
+
     useEffect(() => {
-        if (deals.length === 0) {
-            // Transform MOCK_DEALS to match type if needed, but here we defined it to match Deal interface (mostly)
-            // Note: MOCK_DEALS items above are tailored to satisfy Deal interface + UI needs
-            // We might need to map 'userName' to deal props dynamically or keep it simple.
-            // In DealCard, it uses 'userName'. In Deal interface, we have contractorName/labourName.
-            // We will fix MOCK_DEALS object structure to be strictly compliant if TS complains, 
-            // but for now we added compatible fields.
-
-            // To ensure DealCard works (it expects userName), we need to ensure Deal objects have what DealCard needs 
-            // OR Update DealCard to use new fields. 
-            // Let's stick to the current MOCK_DEALS structure which works for DealCard, but cast it?
-            // Actually I updated Deal interface. 
-            // I should use the Deal interface which has contractorName etc.
-            // DealCard expects { userName, ... }.
-            // I'll adhere to the logic:
-
-            dispatch(setDeals(MOCK_DEALS));
+        if (isFocused) {
+            fetchDeals();
         }
-    }, []);
+    }, [isFocused]);
 
-    const tabs = ['active', 'completion_requested', 'completed'];
+    const fetchDeals = async () => {
+        try {
+            setLoading(true);
+            const res = await api.get('deals');
+            if (res.data.success) {
+                dispatch(setDeals(res.data.data));
+            }
+        } catch (err) {
+            console.error('Fetch Deals Error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const tabs = ['applied', 'active', 'completed'];
     const isContractor = role === 'contractor';
 
     const getTabLabel = (tab: string) => {
         switch (tab) {
+            case 'applied': return isContractor ? t('applications') : t('applied' as any);
             case 'active': return t('in_progress');
-            case 'completion_requested': return t('pending');
             case 'completed': return t('finished');
             default: return tab;
         }
     };
 
-    const handleStatusUpdate = (dealId: string, newStatus: DealStatus) => {
-        const statusLabel = newStatus.replace('_', ' ');
-        Alert.alert(
-            "Update Status",
-            `Are you sure you want to change this to ${statusLabel}?`,
-            [
-                { text: "No", style: "cancel" },
-                {
-                    text: "Yes",
-                    onPress: () => {
-                        const updatedDeals = deals.map(d => d.id === dealId ? { ...d, status: newStatus } : d);
-                        dispatch(setDeals(updatedDeals));
-                    }
-                }
-            ]
-        );
+    const handleStatusUpdate = async (dealId: string, newStatus: string) => {
+        try {
+            let endpoint = '';
+            let data = {};
+
+            if (newStatus === 'active' || newStatus === 'rejected') {
+                endpoint = `deals/status`; // Internal API upgrade to handle body
+                data = { dealId, status: newStatus };
+            } else if (newStatus === 'completion_requested') {
+                endpoint = `deals/${dealId}/request-completion`;
+            } else if (newStatus === 'completed') {
+                endpoint = `deals/${dealId}/approve-completion`;
+            }
+
+            if (!endpoint) return;
+
+            const res = endpoint.includes('status')
+                ? await api.put(endpoint, data)
+                : await api.post(endpoint);
+
+            if (res.data.success) {
+                Alert.alert(t('success'), `Status updated to ${newStatus}`);
+                fetchDeals();
+            }
+        } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || 'Update failed');
+        }
     };
 
-    const filteredDeals = deals.filter(deal => deal.status === activeTab);
+    const filteredDeals = deals.filter(deal => {
+        if (activeTab === 'active') {
+            return deal.status === 'active' || deal.status === 'completion_requested';
+        }
+        return deal.status === activeTab;
+    });
+
+
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -148,7 +168,7 @@ export default function DealsScreen() {
 
             <FlatList
                 data={filteredDeals}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item, index) => item.id || index.toString()}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
                     <DealCard
@@ -158,6 +178,8 @@ export default function DealsScreen() {
                             navigation.navigate('Details', {
                                 itemId: item.id,
                                 itemType: isContractor ? 'labour' : 'job',
+                                name: isContractor ? item.labourName : item.workType,
+                                skills: isContractor ? [item.workType] : [],
                                 initialStatus: item.status,
                                 fromDeals: true
                             });

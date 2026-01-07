@@ -45,16 +45,29 @@ export interface ContractorBrief {
 }
 
 export interface Job {
-    jobId: string;
+    _id: string;
+    contractorId: {
+        _id: string;
+        name: string;
+        phone: string;
+        averageRating?: number;
+    };
     workType: string;
-    description: string;
-    location: Location;
-    distanceKm: number;
-    duration: string;
-    payment: Payment | null;
-    contractor: ContractorBrief;
-    status: 'open' | 'assigned' | 'closed';
+    description?: string;
+    requiredWorkers: number;
+    filledWorkers: number;
+    paymentAmount: number;
+    paymentType: 'per_day' | 'fixed';
+    location: {
+        type: string;
+        coordinates: number[];
+        address?: string;
+        area?: string;
+        city?: string;
+    };
+    status: 'open' | 'in_progress' | 'completed' | 'closed';
     createdAt: string;
+    distanceKm?: number;
 }
 
 export interface JobSearchData {
@@ -69,14 +82,21 @@ export type JobSearchResponse = ApiResponse<JobSearchData>;
 // ------------------------------------------------
 
 export interface Labour {
-    labourId: string;
+    _id: string;
     name: string;
-    skill: string;
-    experienceYears: number;
-    location: Location;
-    rating: number | null;
+    skills: string[];
+    experienceYears?: number;
+    location: {
+        type: string;
+        coordinates: number[];
+        address?: string;
+        area?: string;
+        city?: string;
+    };
+    averageRating: number;
+    reviewCount: number;
+    rank?: 'Top Labour' | 'Trusted' | 'Reliable' | 'Average' | 'Risky';
     availability: 'today' | 'tomorrow' | 'unavailable';
-    lastActive: string;
 }
 
 export interface LabourSearchData {

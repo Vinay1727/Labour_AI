@@ -1,7 +1,11 @@
 import express from 'express';
-import { createReview } from '../controllers/review.controller';
+import { createReview, getDealReviews } from '../controllers/review.controller';
 import { protect } from '../middleware/auth.middleware';
 
 const router = express.Router();
-router.post('/', protect, createReview);
+
+router.use(protect);
+router.post('/', createReview);
+router.get('/deal/:dealId', getDealReviews);
+
 export default router;

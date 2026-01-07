@@ -30,8 +30,10 @@ export default function ProfileScreen() {
         role: role || 'labour',
         location: formatLocation(user?.location),
         phone: user?.phone || '+91 9876543210',
-        skill: user?.skill || 'Painter / पेंटर',
-        experience: user?.experience || '5',
+        skill: user?.skills && user.skills.length > 0
+            ? user.skills.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')
+            : user?.isSkilled === false ? 'Helper / हेल्पर' : 'General Work',
+        experience: user?.experience || '0',
         rating: '4.8',
         isVerified: true,
         jobsPosted: 12,

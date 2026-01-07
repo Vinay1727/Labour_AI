@@ -8,7 +8,8 @@ export type DealStatus =
     | 'assigned'             // Contractor assigned labour
     | 'active'               // Business in progress
     | 'completion_requested' // Labour marked done, waiting for contractor
-    | 'completed';           // Contractor approved and closed
+    | 'completed'            // Contractor approved and closed
+    | 'rejected';           // Application rejected
 
 export interface Deal {
     id: string;
@@ -28,12 +29,15 @@ export interface Deal {
     labourId: string;
     labourName: string;
     userName?: string; // For UI display
+    labourFinishRequested?: boolean;
 
 
     // Timestamps
     createdAt: string;
     updatedAt: string;
     completedAt?: string;
+
+    isReviewed?: boolean;
 
     // Attendance
     attendance?: AttendanceRecord[];
