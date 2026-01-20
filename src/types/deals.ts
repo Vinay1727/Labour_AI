@@ -8,7 +8,8 @@ export type DealStatus =
     | 'assigned'             // Contractor assigned labour
     | 'active'               // Business in progress
     | 'completion_requested' // Labour marked done, waiting for contractor
-    | 'completed'            // Contractor approved and closed
+    | 'finished'             // Work approved, waiting for rating
+    | 'completed'            // Both sides rated, terminal state
     | 'rejected';           // Application rejected
 
 export interface Deal {
@@ -22,6 +23,7 @@ export interface Deal {
     };
     date: string;
     payment?: string;
+    appliedSkill?: string;
 
     // Participants
     contractorId: string;
@@ -38,6 +40,12 @@ export interface Deal {
     completedAt?: string;
 
     isReviewed?: boolean;
+    completionStatus?: 'requested' | 'approved' | 'rejected';
+    rejectionHistory?: Array<{
+        reasonCodes: string[];
+        note?: string | null;
+        rejectedAt: string;
+    }>;
 
     // Attendance
     attendance?: AttendanceRecord[];
@@ -49,8 +57,10 @@ export interface AttendanceRecord {
     date: string;       // ISO Date YYYY-MM-DD
     timestamp: string;  // ISO Full Timestamp
     location: {
-        latitude: number;
-        longitude: number;
+        type?: string;
+        coordinates?: number[];
+        latitude?: number;
+        longitude?: number;
         address?: string;
     };
     imageUrl: string;

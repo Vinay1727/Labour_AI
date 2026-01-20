@@ -5,7 +5,14 @@ export interface IMessage extends Document {
     senderId: mongoose.Schema.Types.ObjectId;
     receiverId: mongoose.Schema.Types.ObjectId;
     message: string;
-    messageType: 'text' | 'image' | 'voice';
+    messageType: 'text' | 'image' | 'voice' | 'attendance_proof';
+    imageUrl?: string;
+    location?: {
+        latitude: number;
+        longitude: number;
+    };
+    attendanceId?: mongoose.Schema.Types.ObjectId;
+    status?: string; // e.g., 'pending', 'approved', 'rejected'
     isRead: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -16,7 +23,14 @@ const MessageSchema: Schema = new Schema({
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     receiverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     message: { type: String, required: true },
-    messageType: { type: String, enum: ['text', 'image', 'voice'], default: 'text' },
+    messageType: { type: String, enum: ['text', 'image', 'voice', 'attendance_proof'], default: 'text' },
+    imageUrl: { type: String },
+    location: {
+        latitude: { type: Number },
+        longitude: { type: Number }
+    },
+    attendanceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Attendance' },
+    status: { type: String },
     isRead: { type: Boolean, default: false }
 }, {
     timestamps: true

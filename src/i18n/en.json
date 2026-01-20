@@ -29,7 +29,6 @@
     "details": "Details",
     "contractor": "Contractor",
     "labour": "Labour",
-    "in_progress": "In Progress",
     "pending": "Pending",
     "finished": "Finished",
     "work_history": "Work History",
@@ -196,5 +195,18 @@
     "contact": "Contact",
     "view_profile": "View Profile",
     "available_near_you": "Available near you",
-    "works": "Works"
+    "works": "Works",
+    "work_done": "Work Done",
+    "fully_completed": "Poora Hua ⭐",
+    "rating_summary": "Rating Di Gayi",
+    "submit_review": "Submit Review",
+    "optional": "Optional",
+    "quick_feedback": "Quick Feedback",
+    "rejected": "Rejected",
+    "in_progress": "In Progress",
+    "no_deals_hinglish": "Abhi yahan kuch nahi hai",
+    "no_deals_sub": "Jaise hi kaam aayega, yahin dikhega",
+    "no_messages_hinglish": "Abhi koi message nahi hai",
+    "no_messages_sub": "Jab baat hogi tab dikhega",
+    "attendance_marked": "Attendance Marked"
 }

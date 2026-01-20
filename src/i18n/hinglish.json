@@ -160,5 +160,19 @@
     "approx_payment_label": "Payment",
     "payment_amount_placeholder": "Amount bharein",
     "requirements_per_skill": "Har Skill ki Requirements",
-    "per_skill_details": "Har skill ke liye workers aur payment bharein"
+    "per_skill_details": "Har skill ke liye workers aur payment bharein",
+    "work_done": "Kaam khatam hua",
+    "fully_completed": "Puri tarah khatam",
+    "rating_summary": "Rating summary",
+    "submit_review": "Review submit karein",
+    "optional": "Optional",
+    "quick_feedback": "Quick feedback",
+    "comment_placeholder": "Experience ke baare mein batayein...",
+    "applied": "Applied",
+    "rejected": "Rejected",
+    "not_marked": "Nahi lagi",
+    "attendance_marked": "Attendance lag gayi",
+    "mark_attendance": "Attendance Lagayein",
+    "today": "Aaj",
+    "verify_location": "Location check karein"
 }

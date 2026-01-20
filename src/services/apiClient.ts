@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { storage } from '../utils/storage';
 
 // Replace with your actual API base URL
 const BASE_URL = 'http://localhost:3000/api';
@@ -13,10 +14,14 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
     async (config) => {
-        // const token = await getToken();
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
+        try {
+            const token = await storage.getToken();
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        } catch (error) {
+            console.error('Error attaching token', error);
+        }
         return config;
     },
     (error) => {

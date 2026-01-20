@@ -160,5 +160,14 @@
     "approx_payment_label": "पेमेंट",
     "payment_amount_placeholder": "रकम भरें",
     "requirements_per_skill": "हर स्किल की जरूरतें",
-    "per_skill_details": "हर स्किल के लिए मजदूर और पेमेंट भरें"
+    "per_skill_details": "हर स्किल के लिए मजदूर और पेमेंट भरें",
+    "work_done": "काम पूरा हुआ",
+    "fully_completed": "पूरी तरह समाप्त",
+    "rating_summary": "रेटिंग सारांश",
+    "submit_review": "समीक्षा जमा करें",
+    "optional": "वैकल्पिक",
+    "quick_feedback": "त्वरित प्रतिक्रिया",
+    "comment_placeholder": "काम के अनुभव के बारे में बताएं...",
+    "applied": "आवेदन किया",
+    "rejected": "अस्वीकार कर दिया"
 }

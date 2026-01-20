@@ -22,7 +22,7 @@ export default function AttendanceScreen() {
     const { dealId } = route.params as { dealId: string };
 
     const [deal, setDeal] = useState<any>(null);
-    const [status, setStatus] = useState<'not_marked' | 'pending' | 'approved'>('not_marked');
+    const [status, setStatus] = useState<'not_marked' | 'pending' | 'approved' | 'rejected'>('not_marked');
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [address, setAddress] = useState<string>('');
     const [image, setImage] = useState<string | null>(null);
@@ -39,7 +39,27 @@ export default function AttendanceScreen() {
         }
 
         loadInitialData();
+
+        // Poll for status updates (e.g., if contractor approves/rejects via chat)
+        const interval = setInterval(fetchAttendanceStatus, 5000);
+        return () => clearInterval(interval);
     }, []);
+
+    const fetchAttendanceStatus = async () => {
+        try {
+            const attendanceRes = await api.get(`attendance/deal/${dealId}`);
+            if (attendanceRes.data.success) {
+                const records = attendanceRes.data.data;
+                const todayStr = new Date().toISOString().split('T')[0];
+                const todayRecord = records.find((r: any) => r.date.startsWith(todayStr));
+                if (todayRecord) {
+                    setStatus(todayRecord.status);
+                }
+            }
+        } catch (err) {
+            console.error('Fetch Attendance Status Error:', err);
+        }
+    };
 
     const loadInitialData = async () => {
         try {
@@ -51,15 +71,7 @@ export default function AttendanceScreen() {
             }
 
             // 2. Check if already marked today
-            const attendanceRes = await api.get(`attendance/deal/${dealId}`);
-            if (attendanceRes.data.success) {
-                const records = attendanceRes.data.data;
-                const todayStr = new Date().toISOString().split('T')[0];
-                const todayRecord = records.find((r: any) => r.date.startsWith(todayStr));
-                if (todayRecord) {
-                    setStatus(todayRecord.status);
-                }
-            }
+            await fetchAttendanceStatus();
 
             // 3. Auto-start location
             verifyLocation();
@@ -167,14 +179,29 @@ export default function AttendanceScreen() {
 
         setLoading(true);
         try {
-            const res = await api.post('attendance/submit', {
-                dealId,
-                location: {
-                    type: 'Point',
-                    coordinates: [currentLoc.coords.longitude, currentLoc.coords.latitude],
-                    address: address
+            const formData = new FormData();
+            formData.append('dealId', dealId);
+            formData.append('location', JSON.stringify({
+                type: 'Point',
+                coordinates: [currentLoc.coords.longitude, currentLoc.coords.latitude],
+                address: address
+            }));
+
+            // Prepare image file for upload
+            const filename = image.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename || '');
+            const type = match ? `image/${match[1]}` : `image`;
+
+            formData.append('image', {
+                uri: image,
+                name: filename,
+                type: type,
+            } as any);
+
+            const res = await api.post('attendance/submit', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
                 },
-                imageUrl: image
             });
 
             if (res.data.success) {
@@ -206,7 +233,7 @@ export default function AttendanceScreen() {
         year: 'numeric'
     });
 
-    const canSubmit = image && status === 'not_marked' && !loading;
+    const canSubmit = image && (status === 'not_marked' || status === 'rejected') && !loading;
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -233,11 +260,19 @@ export default function AttendanceScreen() {
                     </View>
                     <View style={[
                         styles.statusBadge,
-                        { backgroundColor: status === 'approved' ? '#D1FAE5' : status === 'pending' ? '#FEF3C7' : '#E5E7EB' }
+                        {
+                            backgroundColor: status === 'approved' ? '#D1FAE5' :
+                                status === 'pending' ? '#FEF3C7' :
+                                    status === 'rejected' ? '#FEE2E2' : '#E5E7EB'
+                        }
                     ]}>
                         <Text style={[
                             styles.statusText,
-                            { color: status === 'approved' ? '#059669' : status === 'pending' ? '#B45309' : '#6B7280' }
+                            {
+                                color: status === 'approved' ? '#059669' :
+                                    status === 'pending' ? '#B45309' :
+                                        status === 'rejected' ? '#DC2626' : '#6B7280'
+                            }
                         ]}>
                             {status === 'not_marked' ? (t('not_marked' as any)).toUpperCase() : status.toUpperCase()}
                         </Text>

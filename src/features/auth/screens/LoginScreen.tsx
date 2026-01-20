@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { PrimaryButton } from '../../../components/buttons/PrimaryButton';
 import { PhoneInput } from '../../../components/inputs/PhoneInput';
 import { ScreenWrapper } from '../../../components/layout/ScreenWrapper';
+import { authService } from '../../../services/authService';
 
 export const LoginScreen = ({ navigation }: any) => {
     const [phone, setPhone] = useState('');
 
-    const handleLogin = () => {
-        // API call to send OTP
-        navigation.navigate('OTP', { phoneNumber: phone });
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleLogin = async () => {
+        if (!phone || phone.length !== 10) return;
+
+        setIsLoading(true);
+        try {
+            await authService.sendOtp(phone);
+            navigation.navigate('OTP', { phoneNumber: phone });
+        } catch (error: any) {
+            Alert.alert('Error', error.response?.data?.message || 'Failed to send OTP');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -26,7 +38,8 @@ export const LoginScreen = ({ navigation }: any) => {
                 <PrimaryButton
                     title="Get OTP"
                     onPress={handleLogin}
-                    disabled={phone.length !== 10}
+                    disabled={phone.length !== 10 || isLoading}
+                    isLoading={isLoading}
                 />
             </View>
         </ScreenWrapper>

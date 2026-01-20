@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1094059700220",
+    "project_id": "labour-chowk-381d9",
+    "storage_bucket": "labour-chowk-381d9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1094059700220:android:1cc24f67554f1ff693cc79",
+        "android_client_info": {
+          "package_name": "com.labourchowk.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4zkxrF7f9gGovItm3u81Ob33J5VnC204"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

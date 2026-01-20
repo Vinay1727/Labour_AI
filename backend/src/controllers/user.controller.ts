@@ -8,8 +8,64 @@ import Review from '../models/Review.model';
 
 export const updateProfile = async (req: AuthRequest, res: Response) => {
     try {
-        const user = await User.findByIdAndUpdate(req.user.id, req.body, { new: true });
+        // Prevent direct phone update via profile update
+        const { phone, ...updateData } = req.body;
+        const user = await User.findByIdAndUpdate(req.user.id, updateData, { new: true });
         success(res, user, 'Profile updated');
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};
+
+export const requestPhoneChange = async (req: AuthRequest, res: Response) => {
+    try {
+        const { newPhone } = req.body;
+        if (!newPhone) return error(res, 'New phone number is required', 400);
+
+        // Check if phone already in use
+        const existingUser = await User.findOne({ phone: newPhone });
+        if (existingUser) return error(res, 'This phone number is already registered', 400);
+
+        const otp = '1234'; // Mock OTP
+        const otpExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+        await User.findByIdAndUpdate(req.user.id, {
+            pendingPhone: newPhone,
+            phoneUpdateOTP: otp,
+            phoneUpdateOTPExpire: otpExpire
+        });
+
+        success(res, { otp }, 'OTP sent to new number');
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};
+
+export const verifyPhoneChange = async (req: AuthRequest, res: Response) => {
+    try {
+        const { otp } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user || !user.phoneUpdateOTP) {
+            return error(res, 'No pending phone change request', 400);
+        }
+
+        if (user.phoneUpdateOTP !== otp) {
+            return error(res, 'Invalid OTP', 400);
+        }
+
+        if (user.phoneUpdateOTPExpire && user.phoneUpdateOTPExpire < new Date()) {
+            return error(res, 'OTP expired', 400);
+        }
+
+        const newPhone = user.pendingPhone;
+        user.phone = newPhone!;
+        user.pendingPhone = undefined;
+        user.phoneUpdateOTP = undefined;
+        user.phoneUpdateOTPExpire = undefined;
+        await user.save();
+
+        success(res, user, 'Phone number updated successfully');
     } catch (e: any) {
         error(res, e.message);
     }
@@ -153,10 +209,10 @@ export const getLabourDetails = async (req: AuthRequest, res: Response) => {
                 skillExperience: skillExpRes,
                 areaFamiliarity: areasRes.map(a => a._id),
                 behaviourTags,
-                joinedDate: labour.createdAt.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+                joinedDate: labour.createdAt ? labour.createdAt.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Recent',
                 jobsCompleted: completedDeals,
                 recentReviews: recentReviews.map(r => ({
-                    reviewer: (r.reviewerId as any).name,
+                    reviewer: (r.reviewerId as any)?.name || 'User',
                     rating: r.rating,
                     comment: r.comment
                 }))

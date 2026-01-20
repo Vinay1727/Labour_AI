@@ -14,6 +14,7 @@ export const DealsList = () => {
         <ScreenWrapper>
             <Header title="My Deals" />
             <FlatList
+                style={{ flex: 1 }}
                 contentContainerStyle={styles.list}
                 data={deals}
                 keyExtractor={item => item.id}

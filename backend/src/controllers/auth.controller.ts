@@ -30,8 +30,19 @@ export const verifyOtp = async (req: Request, res: Response) => {
         const { phone, otp, name } = req.body;
         console.log('Verifying OTP for:', phone, 'OTP:', otp);
 
-        if (otp !== '1234') { // Mock OTP
-            return error(res, 'Invalid OTP', 400);
+        const bypassEnabled = process.env.OTP_BYPASS_ENABLED === 'true';
+        const testOtp = process.env.TEST_OTP || '1234';
+
+        if (bypassEnabled) {
+            console.log('OTP Verify: Bypass Enabled. Expecting:', testOtp);
+            if (otp !== testOtp) {
+                return error(res, 'Invalid OTP (Test Mode)', 400);
+            }
+        } else {
+            // TODO: Implement real OTP verification here (e.g. Redis, DB, or Provider API)
+            if (otp !== '1234') { // Fallback mock for now if env not set
+                return error(res, 'Invalid OTP', 400);
+            }
         }
 
         let user = await User.findOne({ phone });

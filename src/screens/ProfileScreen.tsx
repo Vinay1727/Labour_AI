@@ -1,125 +1,199 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
-import { typography } from '../theme/typography';
-import { ProfileHeader } from '../components/profile/ProfileHeader';
-import { InfoCard } from '../components/profile/InfoCard';
-import { ProfileRow } from '../components/profile/ProfileRow';
-import { WorkHistory } from '../components/profile/WorkHistory';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
+
+const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
     const { role, logout, user } = useAuth();
     const navigation = useNavigation<any>();
     const { t } = useTranslation();
 
-    // User Data from Auth or Mock
+    const isContractor = role === 'contractor';
+
+    // Helper: Format Location
     const formatLocation = (loc: any) => {
-        if (!loc) return 'Noida, Sector 62';
+        if (!loc) return t('no_location_added' as any) || 'Location not set';
         if (typeof loc === 'string') return loc;
-        return `${loc.area || 'Noida'}, ${loc.city || 'Sector 62'}`;
+        return `${loc.area || ''}, ${loc.city || ''}`.replace(/^, /, '');
     };
 
+    // Derived User Data (Safe Handling)
     const userData = {
-        name: user?.name || 'Vinay Badnoriya',
-        role: role || 'labour',
+        name: user?.name || t('guest_user' as any),
+        initials: (user?.name || 'U').charAt(0).toUpperCase(),
+        roleLabel: isContractor ? t('contractor') : t('labour'),
         location: formatLocation(user?.location),
-        phone: user?.phone || '+91 9876543210',
-        skill: user?.skills && user.skills.length > 0
-            ? user.skills.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')
-            : user?.isSkilled === false ? 'Helper / हेल्पर' : 'General Work',
+        phone: user?.phone || '',
+        skill: user?.skills?.[0] || (user?.isSkilled ? 'Skilled Worker' : 'Helper'),
         experience: user?.experience || '0',
-        rating: '4.8',
+        rating: 4.8, // Mock or Real
+        jobsCompleted: 12, // Mock or Real
         isVerified: true,
-        jobsPosted: 12,
-        activeJobs: 3,
+        // user.experience might be string from API
+        isNewUser: (String(user?.experience || '0') === '0' || !user?.experience),
     };
 
-    const isContractor = userData.role === 'contractor';
+    // UI Components for Grid
+    const ActionItem = ({ icon, label, onPress, color = Colors.primary, bgColor = '#EFF6FF' }: any) => (
+        <TouchableOpacity style={[styles.actionCard, { backgroundColor: bgColor }]} onPress={onPress} activeOpacity={0.7}>
+            <View style={[styles.actionIconCircle, { backgroundColor: Colors.white }]}>
+                <AppIcon name={icon} size={22} color={color} />
+            </View>
+            <Text style={[styles.actionLabel, { color: color === Colors.error ? Colors.error : Colors.textPrimary }]}>
+                {label}
+            </Text>
+        </TouchableOpacity>
+    );
+
+    const StatBox = ({ label, value, icon, color }: any) => (
+        <View style={styles.statBox}>
+            <AppIcon name={icon} size={20} color={color} />
+            <Text style={styles.statValue}>{value}</Text>
+            <Text style={styles.statLabel}>{label}</Text>
+        </View>
+    );
+
+    const Badge = ({ label, icon, color, bg }: any) => (
+        <View style={[styles.badgeContainer, { backgroundColor: bg || '#F3F4F6' }]}>
+            <AppIcon name={icon} size={14} color={color} />
+            <Text style={[styles.badgeText, { color }]}>{label}</Text>
+        </View>
+    );
 
     return (
-        <SafeAreaView style={styles.container} edges={['bottom']}>
-            <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-                {/* Visual Header with Verified Badge */}
-                <ProfileHeader
-                    name={userData.name}
-                    role={userData.role as any}
-                    location={userData.location}
-                />
-
-                <View style={styles.content}>
-
-                    {/* Part 2: High-Visibility Verified Badge */}
-                    {userData.isVerified && (
-                        <View style={styles.verifiedBadgeContainer}>
-                            <View style={styles.verifiedBadge}>
-                                <AppIcon name="shield-checkmark" size={18} color={Colors.white} />
-                                <Text style={styles.verifiedText}>{t('verified_profile')}</Text>
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Quick Info Grid */}
-                    <View style={styles.grid}>
-                        {isContractor ? (
-                            <>
-                                <InfoCard icon="briefcase" label={t('jobs_posted')} value={userData.jobsPosted.toString()} />
-                                <InfoCard icon="flash" label={t('active_jobs')} value={userData.activeJobs.toString()} />
-                                <InfoCard icon="star" label={t('rating')} value={`${userData.rating} ⭐`} />
-                                <InfoCard icon="location" label={t('service_area')} value="Noida" />
-                            </>
-                        ) : (
-                            <>
-                                <InfoCard icon="hammer" label={t('skill')} value={userData.skill} />
-                                <InfoCard icon="time" label={t('exp_years')} value={`${userData.experience}y`} />
-                                <InfoCard icon="wallet" label={t('work_mode')} value="Daily" />
-                                <InfoCard icon="star" label={t('rating')} value={`${userData.rating} ⭐`} />
-                            </>
-                        )}
-                    </View>
-
-                    {/* Action Section */}
-                    <View style={styles.actionSection}>
-                        <View style={styles.actionRow}>
-                            <TouchableOpacity
-                                style={styles.editBtn}
-                                onPress={() => navigation.navigate('EditProfile')}
-                            >
-                                <AppIcon name="create-outline" size={20} color={Colors.white} />
-                                <Text style={styles.editBtnText}>{t('edit_profile')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.settingsBtn}
-                                onPress={() => navigation.navigate('Settings')}
-                            >
-                                <AppIcon name="settings-outline" size={22} color={Colors.primary} />
+        <View style={styles.container}>
+            {/* HER BACKGROUND + STATS (FIXED) */}
+            <View>
+                <View style={[styles.heroBackground, { backgroundColor: isContractor ? '#1E40AF' : '#047857' }]}>
+                    <SafeAreaView edges={['top']} style={styles.headerSafe}>
+                        <View style={styles.headerTop}>
+                            <Text style={styles.headerTitle}>{t('my_profile' as any)}</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                                <AppIcon name="settings-outline" size={24} color={Colors.white} />
                             </TouchableOpacity>
                         </View>
+                    </SafeAreaView>
 
-                        <View style={styles.settingsCard}>
-                            <ProfileRow icon="call-outline" label={t('phone')} value={userData.phone} />
-                            <View style={styles.divider} />
-                            <ProfileRow icon="map-outline" label={t('location')} value={userData.location} />
+                    {/* HERO PROFILE INFO */}
+                    <View style={styles.heroProfile}>
+                        <View style={styles.avatarContainer}>
+                            <Text style={[styles.avatarText, { color: isContractor ? '#1E40AF' : '#047857' }]}>
+                                {userData.initials}
+                            </Text>
+                            {userData.isVerified && (
+                                <View style={styles.verifiedCheck}>
+                                    <AppIcon name="checkmark" size={12} color={Colors.white} />
+                                </View>
+                            )}
                         </View>
-                    </View>
-
-                    {/* Part 3 & 4: Role-Based Work History */}
-                    <WorkHistory role={userData.role as any} userId="123" />
-
-                    {/* Bottom Actions */}
-                    {/* Bottom Info */}
-                    <View style={styles.bottomInfo}>
-                        <Text style={styles.versionText}>Labour Chowk v1.2.0 (Stable)</Text>
+                        <View style={styles.heroText}>
+                            <Text style={styles.heroName}>{userData.name}</Text>
+                            <Text style={styles.heroSubtitle}>
+                                {userData.skill} • {userData.location}
+                            </Text>
+                        </View>
                     </View>
                 </View>
+
+                {/* VISIBLE STATS CARD (FIXED) */}
+                <View style={styles.fixedStatsContainer}>
+                    <View style={styles.statsCard}>
+                        <StatBox
+                            icon="star"
+                            color="#F59E0B"
+                            value={userData.isNewUser ? "New" : userData.rating}
+                            label={t('rating')}
+                        />
+                        <View style={styles.statDivider} />
+                        <StatBox
+                            icon="briefcase"
+                            color={isContractor ? '#3B82F6' : '#10B981'}
+                            value={userData.jobsCompleted || 0}
+                            label={t('jobs_done' as any)}
+                        />
+                        <View style={styles.statDivider} />
+                        <StatBox
+                            icon="time"
+                            color="#8B5CF6"
+                            value={`${userData.experience}y`}
+                            label={t('exp_years')}
+                        />
+                    </View>
+                </View>
+            </View>
+
+            <ScrollView
+                style={styles.contentScroll}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* BADGES SECTION */}
+                <View style={styles.badgesGrid}>
+                    {userData.isNewUser && (
+                        <Badge label="New Member" icon="leaf" color="#10B981" bg="#ECFDF5" />
+                    )}
+                    {userData.isVerified && (
+                        <Badge label="Phone Verified" icon="shield-checkmark" color="#3B82F6" bg="#EFF6FF" />
+                    )}
+                    <Badge label="On-Time Worker" icon="timer" color="#F59E0B" bg="#FFFBEB" />
+                    <Badge label="Trusted" icon="ribbon" color="#8B5CF6" bg="#F5F3FF" />
+                </View>
+
+                {/* BASIC INFO SECTION */}
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionHeader}>{t('contact_info' as any)}</Text>
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoIcon}>
+                            <AppIcon name="call-outline" size={20} color={Colors.textSecondary} />
+                        </View>
+                        <View style={styles.infoTextContainer}>
+                            <Text style={styles.infoLabel}>{t('phone')}</Text>
+                            <Text style={styles.infoValue}>{userData.phone}</Text>
+                        </View>
+                        {userData.isVerified && <AppIcon name="checkmark-circle" size={18} color={Colors.success} />}
+                    </View>
+                    <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                        <View style={styles.infoIcon}>
+                            <AppIcon name="location-outline" size={20} color={Colors.textSecondary} />
+                        </View>
+                        <View style={styles.infoTextContainer}>
+                            <Text style={styles.infoLabel}>{t('location')}</Text>
+                            <Text style={styles.infoValue}>{userData.location}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* ACTION GRID */}
+                <Text style={styles.sectionHeader}>{t('account_settings' as any)}</Text>
+                <View style={styles.gridContainer}>
+                    <ActionItem
+                        label={t('edit_profile')}
+                        icon="create-outline"
+                        color={Colors.primary}
+                        bgColor="#EFF6FF"
+                        onPress={() => navigation.navigate('EditProfile')}
+                    />
+                    <ActionItem
+                        label={t('logout')}
+                        icon="log-out-outline"
+                        color={Colors.error}
+                        bgColor="#FEF2F2"
+                        onPress={logout}
+                    />
+                </View>
+
+                {/* App Version Footer */}
+                <Text style={styles.versionText}>App Version v1.0.2</Text>
+                <View style={{ height: 100 }} />
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -128,103 +202,225 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
     },
-    scrollContainer: {
+    heroBackground: {
+        height: 240,
         paddingBottom: 40,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        elevation: 4,
+        zIndex: 1,
     },
-    content: {
-        paddingHorizontal: spacing.l,
-        marginTop: -30,
+    headerSafe: {
+        marginBottom: 10,
     },
-    verifiedBadgeContainer: {
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: spacing.l,
-        zIndex: 10,
+        paddingHorizontal: spacing.l,
+        paddingVertical: spacing.s,
     },
-    verifiedBadge: {
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.white,
+    },
+    heroProfile: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.success,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        gap: 6,
-        elevation: 4,
-        shadowColor: Colors.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
+        paddingHorizontal: spacing.l,
     },
-    verifiedText: {
-        color: Colors.white,
+    avatarContainer: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        backgroundColor: Colors.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: spacing.m,
+        position: 'relative',
+        elevation: 5,
+    },
+    avatarText: {
+        fontSize: 28,
         fontWeight: 'bold',
-        fontSize: 13,
     },
-    grid: {
+    verifiedCheck: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: Colors.success,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: Colors.white,
+    },
+    heroText: {
+        flex: 1,
+    },
+    heroName: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: Colors.white,
+        marginBottom: 4,
+    },
+    heroSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '500',
+    },
+    fixedStatsContainer: {
+        position: 'absolute',
+        top: 180,
+        left: 0,
+        right: 0,
+        paddingHorizontal: spacing.l,
+        zIndex: 10,
+    },
+    contentScroll: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: spacing.l,
+        paddingBottom: 20,
+        paddingTop: 60, // Reduced from 80 to tighten gap between Stats and Badges
+    },
+    statsCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 20,
+        padding: spacing.m,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+    },
+    statBox: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+    },
+    statValue: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
+        marginTop: 4,
+    },
+    statLabel: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+    },
+    statDivider: {
+        width: 1,
+        height: '60%',
+        backgroundColor: Colors.border,
+    },
+    badgesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        marginBottom: spacing.xl,
+        paddingHorizontal: spacing.l,
+        marginBottom: 16, // Reduced from spacing.l (24)
     },
-    actionSection: {
-        marginBottom: spacing.xl,
-    },
-    actionRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: spacing.md,
-    },
-    editBtn: {
-        flex: 1,
-        backgroundColor: Colors.primary,
+    badgeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderRadius: 12,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+        width: '48%',
+        marginBottom: 12,
         justifyContent: 'center',
-        padding: 16,
-        borderRadius: 16,
-        gap: 10,
-        elevation: 2,
+        backgroundColor: '#F9FAFB',
     },
-    editBtnText: {
-        color: Colors.white,
+    badgeText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        flex: 1,
+    },
+    sectionContainer: {
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        padding: spacing.m,
+        marginBottom: 16, // Reduced from spacing.l (24)
+        elevation: 1,
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    sectionHeader: {
         fontSize: 16,
         fontWeight: 'bold',
+        color: Colors.textPrimary,
+        marginBottom: 8, // Reduced from spacing.m (16)
+        marginLeft: 4,
     },
-    settingsBtn: {
-        width: 56,
-        height: 56,
-        backgroundColor: Colors.white,
-        borderRadius: 16,
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    infoIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#F8FAFC',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.border,
-        elevation: 2,
+        marginRight: 12,
     },
-    settingsCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        paddingHorizontal: spacing.m,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        borderWidth: 1,
-        borderColor: Colors.border,
+    infoTextContainer: {
+        flex: 1,
     },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.border,
-        marginHorizontal: spacing.m,
+    infoLabel: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+        marginBottom: 2,
     },
-    bottomInfo: {
-        marginTop: 40,
-        alignItems: 'center',
+    infoValue: {
+        fontSize: 15,
+        color: Colors.textPrimary,
+        fontWeight: '500',
+    },
+    gridContainer: {
+        flexDirection: 'row',
+        gap: 12,
         paddingBottom: 20,
     },
+    actionCard: {
+        flex: 1, // Professional flexible width
+        padding: 16,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
+    actionIconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8, // Reduced from 12
+    },
+    actionLabel: {
+        fontSize: 15,
+        fontWeight: 'bold',
+    },
     versionText: {
+        textAlign: 'center',
         color: Colors.textSecondary,
         fontSize: 12,
-        marginTop: 10,
+        marginTop: 12, // Reduced from 20
     }
 });

@@ -14,26 +14,42 @@ interface DealCardProps {
     role: 'contractor' | 'labour';
     onViewDetails: () => void;
     onUpdateStatus: (newStatus: DealStatus) => void;
+    onRatePress: () => void;
+    onViewProfile?: () => void;
 }
 
-export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus }: DealCardProps) => {
+export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePress, onViewProfile }: DealCardProps) => {
     const navigation = useNavigation<any>();
     const { user } = useAuth();
     const { t } = useTranslation();
     const isContractor = role === 'contractor';
 
     const getStatusInfo = () => {
+        // Special Case: Completion Rejected
+        if (deal.completionStatus === 'rejected' && deal.status === 'active') {
+            return {
+                label: 'Rejected',
+                color: Colors.error,
+                bg: '#FEF2F2',
+                icon: 'close-circle-outline'
+            };
+        }
+
         switch (deal.status) {
+            case 'applied':
+                return { label: t('applied'), color: '#64748B', bg: '#F1F5F9', icon: 'timer-outline' };
             case 'active':
-                return { label: t('in_progress'), color: Colors.success, bg: Colors.secondaryLight };
+                return { label: t('in_progress'), color: '#F59E0B', bg: '#FFFBEB', icon: 'hammer-outline' };
             case 'completion_requested':
-                return { label: t('pending_approval'), color: Colors.warning, bg: '#FFFBEB' };
+                return { label: t('pending_approval'), color: '#3B82F6', bg: '#EFF6FF', icon: 'sync-outline' };
+            case 'finished':
+                return { label: t('work_done'), color: Colors.primary, bg: Colors.primaryLight, icon: 'checkmark-done-circle-outline' };
             case 'completed':
-                return { label: t('finished'), color: Colors.primary, bg: Colors.primaryLight };
-            case 'open':
-                return { label: t('looking_for_labour'), color: Colors.textSecondary, bg: Colors.textInput };
+                return { label: t('fully_completed'), color: Colors.success, bg: '#DCFCE7', icon: 'star' };
+            case 'rejected':
+                return { label: t('rejected'), color: Colors.error, bg: '#FEF2F2', icon: 'close-circle-outline' };
             default:
-                return { label: deal.status, color: Colors.textSecondary, bg: Colors.textInput };
+                return { label: deal.status, color: Colors.textSecondary, bg: Colors.textInput, icon: 'help-circle-outline' };
         }
     };
 
@@ -43,8 +59,9 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus }: DealCard
         <View style={styles.card}>
             <View style={styles.header}>
                 <View style={styles.workTypeContainer}>
-                    <Text style={styles.workTitle}>{deal.workType}</Text>
+                    <Text style={styles.workTitle}>{deal.appliedSkill || deal.workType}</Text>
                     <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
+                        <AppIcon name={statusInfo.icon as any} size={14} color={statusInfo.color} />
                         <Text style={[styles.badgeText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
                     </View>
                 </View>
@@ -64,7 +81,20 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus }: DealCard
                 </View>
                 <View style={styles.userDetails}>
                     <Text style={styles.userLabel}>{isContractor ? t('worker') : t('contractor')}</Text>
-                    <Text style={styles.userName}>{deal.userName || deal.contractorName}</Text>
+                    <View style={styles.nameRow}>
+                        <Text style={styles.userName}>{deal.userName || deal.contractorName}</Text>
+                        {isContractor && (deal.labourId as any)?.averageRating && (
+                            <View style={styles.miniRatingBadge}>
+                                <AppIcon name="star" size={10} color="#F59E0B" />
+                                <Text style={styles.miniRatingText}>{(deal.labourId as any).averageRating}</Text>
+                            </View>
+                        )}
+                        {isContractor && !(deal.labourId as any)?.averageRating && (
+                            <View style={[styles.miniRatingBadge, { backgroundColor: '#DBEAFE' }]}>
+                                <Text style={[styles.miniRatingText, { color: Colors.primary }]}>NEW</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
                 {deal.payment && (
                     <View style={styles.paymentContainer}>
@@ -74,136 +104,152 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus }: DealCard
                 )}
             </View>
 
+            {/* Rejection Notification for Labour */}
+            {!isContractor && deal.completionStatus === 'rejected' && deal.status === 'active' && deal.rejectionHistory && deal.rejectionHistory.length > 0 && (
+                <View style={styles.rejectionBox}>
+                    <View style={styles.rejectionHeader}>
+                        <AppIcon name="warning-outline" size={16} color={Colors.error} />
+                        <Text style={styles.rejectionTitle}>Kaam check kariye (Rejected)</Text>
+                    </View>
+                    <Text style={styles.rejectionText}>
+                        Contractor feedback: {deal.rejectionHistory[deal.rejectionHistory.length - 1].reasonCodes.join(', ')}
+                    </Text>
+                    {deal.rejectionHistory[deal.rejectionHistory.length - 1].note && (
+                        <Text style={styles.rejectionNote}>"{deal.rejectionHistory[deal.rejectionHistory.length - 1].note}"</Text>
+                    )}
+                </View>
+            )}
+
             <View style={styles.actions}>
                 <TouchableOpacity style={styles.detailsBtn} onPress={onViewDetails} activeOpacity={0.7}>
-                    <Text style={styles.detailsBtnText}>{t('view_details')}</Text>
+                    <AppIcon name="eye-outline" size={20} color={Colors.textPrimary} />
                 </TouchableOpacity>
 
                 <View style={styles.rightActions}>
                     {/* 1. APPLICATIONS PHASE */}
-                    {deal.status === 'applied' && isContractor && (
-                        <>
+                    {(deal.status === 'applied' || deal.status === 'rejected') && isContractor && (
+                        <View style={styles.appliedActions}>
                             <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: Colors.success }]}
-                                onPress={() => onUpdateStatus('active')}
+                                style={styles.viewProfileBtn}
+                                onPress={onViewProfile}
                             >
-                                <Text style={styles.actionBtnText}>{t('accept')}</Text>
+                                <AppIcon name="person-outline" size={16} color={Colors.primary} />
+                                <Text style={styles.viewProfileText}>{t('view_profile' as any)}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: Colors.error }]}
-                                onPress={() => onUpdateStatus('rejected')}
-                            >
-                                <Text style={styles.actionBtnText}>{t('ignore')}</Text>
-                            </TouchableOpacity>
-                        </>
+
+                            <View style={styles.decisionActions}>
+                                <TouchableOpacity
+                                    style={[styles.roundActionBtn, { backgroundColor: Colors.success }]}
+                                    onPress={() => onUpdateStatus('approve_with_skill' as any)}
+                                >
+                                    <AppIcon name="checkmark" size={20} color={Colors.white} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.roundActionBtn, { backgroundColor: Colors.error }]}
+                                    onPress={() => onUpdateStatus('rejected')}
+                                >
+                                    <AppIcon name="close" size={20} color={Colors.white} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     )}
 
                     {/* 2. IN PROGRESS PHASE (Labour Actions) */}
                     {!isContractor && deal.status === 'active' && (
-                        <>
-                            <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: Colors.secondary }]}
-                                onPress={() => onUpdateStatus('completion_requested')}
-                            >
-                                <Text style={styles.actionBtnText}>{t('mark_done')}</Text>
-                            </TouchableOpacity>
-                        </>
+                        <TouchableOpacity
+                            style={[styles.roundActionBtn, { backgroundColor: Colors.secondary }]}
+                            onPress={() => onUpdateStatus('completion_requested')}
+                        >
+                            <AppIcon name="flag" size={20} color={Colors.white} />
+                        </TouchableOpacity>
                     )}
 
                     {/* 3. COMPLETION APPROVAL PHASE (Contractor Actions) */}
                     {isContractor && deal.status === 'completion_requested' && (
                         <>
                             <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: Colors.success }]}
+                                style={[styles.roundActionBtn, { backgroundColor: Colors.success }]}
                                 onPress={() => onUpdateStatus('completed')}
                             >
-                                <AppIcon name="checkmark-done-circle" size={16} color={Colors.white} />
-                                <Text style={styles.actionBtnText}>{t('approve_finish')}</Text>
+                                <AppIcon name="checkmark-done" size={20} color={Colors.white} />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: Colors.error }]}
-                                onPress={() => onUpdateStatus('active')}
+                                style={[styles.roundActionBtn, { backgroundColor: Colors.error }]}
+                                onPress={() => onUpdateStatus('rejected_completion' as any)}
                             >
-                                <Text style={styles.actionBtnText}>{t('reject_continue')}</Text>
+                                <AppIcon name="close" size={20} color={Colors.white} />
                             </TouchableOpacity>
                         </>
                     )}
 
                     {!isContractor && deal.status === 'completion_requested' && (
                         <View style={styles.pendingBadge}>
+                            <AppIcon name="time-outline" size={14} color="#B45309" />
                             <Text style={styles.pendingText}>{t('waiting_for_approval')}</Text>
                         </View>
                     )}
 
+                    {!isContractor && deal.completionStatus === 'rejected' && deal.status === 'active' && (
+                        <TouchableOpacity
+                            style={[styles.roundActionBtn, { backgroundColor: Colors.primary }]}
+                            onPress={() => onUpdateStatus('completion_requested')}
+                        >
+                            <AppIcon name="hammer-outline" size={20} color={Colors.white} />
+                        </TouchableOpacity>
+                    )}
+
                     {/* APPROVED & ACTIVE PHASE ACTIONS */}
-                    {(deal.status === 'assigned' || deal.status === 'active' || deal.status === 'completion_requested' || deal.status === 'completed') && (
+                    {(['assigned', 'active', 'completion_requested', 'finished', 'completed'].includes(deal.status)) && (
                         <>
-                            {/* Chat Button (Both Labour & Contractor) */}
+                            {/* Chat Button */}
                             <TouchableOpacity
-                                style={styles.iconBtn}
+                                style={styles.roundActionBtn}
                                 onPress={() => navigation.navigate('Chat', {
                                     dealId: deal.id,
                                     name: isContractor ? deal.userName : deal.contractorName,
                                     workType: deal.workType
                                 })}
                             >
-                                <AppIcon name="chatbubble-ellipses-outline" size={22} color={Colors.white} />
+                                <AppIcon name="chatbubble-ellipses-outline" size={20} color={Colors.white} />
                             </TouchableOpacity>
 
                             {/* Call Button (Contractor ONLY) */}
                             {isContractor && (
                                 <TouchableOpacity
-                                    style={[styles.iconBtn, { marginLeft: spacing.s }]}
+                                    style={[styles.roundActionBtn, { backgroundColor: Colors.info }]}
                                     onPress={() => {
-                                        // Trigger call logic
                                         Alert.alert('Calling...', `Connecting you to ${deal.userName}`);
                                     }}
                                 >
-                                    <AppIcon name="call-outline" size={22} color={Colors.white} />
+                                    <AppIcon name="call-outline" size={20} color={Colors.white} />
                                 </TouchableOpacity>
                             )}
 
-                            {/* Attendance History (Contractor) / Mark Attendance (Labour) */}
-                            {isContractor ? (
+                            {/* Attendance (Labour ONLY) */}
+                            {!isContractor && (
                                 <TouchableOpacity
-                                    style={[styles.actionBtn, { backgroundColor: Colors.info }]}
-                                    onPress={() => navigation.navigate('AttendanceHistory', { dealId: deal.id })}
+                                    style={[styles.roundActionBtn, { backgroundColor: '#8B5CF6' }]}
+                                    onPress={() => navigation.navigate('Attendance', { dealId: deal.id })}
                                 >
-                                    <AppIcon name="calendar-outline" size={16} color={Colors.white} />
-                                    <Text style={styles.actionBtnText}>{t('view_attendance')}</Text>
+                                    <AppIcon name="calendar-outline" size={20} color={Colors.white} />
                                 </TouchableOpacity>
-                            ) : (
-                                deal.status === 'active' && (
-                                    <TouchableOpacity
-                                        style={[styles.actionBtn, { backgroundColor: Colors.info }]}
-                                        onPress={() => navigation.navigate('Attendance', { dealId: deal.id })}
-                                    >
-                                        <AppIcon name="calendar-outline" size={16} color={Colors.white} />
-                                        <Text style={styles.actionBtnText}>{t('mark_attendance')}</Text>
-                                    </TouchableOpacity>
-                                )
                             )}
                         </>
                     )}
 
-                    {/* 4. COMPLETED PHASE (Rating) */}
-                    {deal.status === 'completed' && (
+                    {/* 4. COMPLETED / FINISHED PHASE (Rating) */}
+                    {(deal.status === 'finished' || deal.status === 'completed') && (
                         deal.isReviewed ? (
                             <View style={styles.completedTag}>
-                                <AppIcon name="star" size={16} color={Colors.primary} />
-                                <Text style={styles.completedTabText}>{t('completed')}</Text>
+                                <AppIcon name="star" size={18} color="#F59E0B" />
+                                <Text style={styles.completedTabText}>{deal.status === 'completed' ? t('fully_completed') : t('rating_summary')}</Text>
                             </View>
                         ) : (
                             <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: Colors.warning }]}
-                                onPress={() => navigation.navigate('Rating', {
-                                    dealId: deal.id,
-                                    name: deal.userName,
-                                    ratedUserId: isContractor ? deal.labourId : deal.contractorId
-                                })}
+                                style={[styles.roundActionBtn, { backgroundColor: Colors.warning }]}
+                                onPress={onRatePress}
                             >
-                                <AppIcon name="star" size={16} color={Colors.white} />
-                                <Text style={styles.actionBtnText}>{t('rate')}</Text>
+                                <AppIcon name="star" size={20} color={Colors.white} />
                             </TouchableOpacity>
                         )
                     )}
@@ -218,8 +264,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.white,
         borderRadius: 20,
         padding: spacing.md,
-        marginBottom: spacing.md,
-        elevation: 3,
+        marginBottom: spacing.sm,
+        elevation: 2,
         shadowColor: Colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -243,13 +289,16 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     badge: {
-        paddingHorizontal: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 8,
+        borderRadius: 6,
         alignSelf: 'flex-start',
+        gap: 4,
     },
     badgeText: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: typography.weight.bold,
         textTransform: 'uppercase',
     },
@@ -270,7 +319,7 @@ const styles = StyleSheet.create({
     userRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.textInput,
+        backgroundColor: '#F8FAFC',
         padding: 12,
         borderRadius: 12,
         marginBottom: 16,
@@ -318,78 +367,142 @@ const styles = StyleSheet.create({
     actions: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-end', // Align to bottom
-        marginTop: spacing.sm,
+        alignItems: 'center',
+        marginTop: spacing.xs,
     },
     detailsBtn: {
-        height: 40,
-        paddingHorizontal: 12,
-        borderRadius: 10,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         borderWidth: 1,
         borderColor: Colors.border,
         backgroundColor: Colors.white,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    detailsBtnText: {
-        color: Colors.textPrimary,
-        fontWeight: typography.weight.semiBold,
-        fontSize: 13,
-    },
     rightActions: {
-        flex: 1,
         flexDirection: 'row',
-        gap: 6,
+        gap: 10,
         justifyContent: 'flex-end',
         alignItems: 'center',
-        flexWrap: 'wrap', // Allow wrapping if many buttons
     },
-    iconBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 10, // Match actionBtn radius
+    roundActionBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 2,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
     },
     pendingBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#FFFBEB',
         paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
+        paddingVertical: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#FEF3C7',
+        gap: 6,
     },
     pendingText: {
         color: '#B45309',
         fontSize: 11,
         fontWeight: 'bold',
     },
-    actionBtn: {
-        height: 40,
-        paddingHorizontal: 12,
-        borderRadius: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        minWidth: 80,
-    },
-    actionBtnText: {
-        color: Colors.white,
-        fontWeight: typography.weight.bold,
-        fontSize: 13,
-    },
     completedTag: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: '#F0FDF4',
+        borderRadius: 10,
     },
     completedTabText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.success,
+    },
+    rejectionBox: {
+        backgroundColor: '#FFF1F2',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#FECDD3',
+    },
+    rejectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4,
+    },
+    rejectionTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.error,
+    },
+    rejectionText: {
+        fontSize: 12,
+        color: '#9F1239',
+        fontWeight: '500',
+    },
+    rejectionNote: {
+        fontSize: 12,
+        color: '#BE123C',
+        fontStyle: 'italic',
+        marginTop: 4,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    miniRatingBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF7ED',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        gap: 2,
+    },
+    miniRatingText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#9A3412',
+    },
+    appliedActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flex: 1,
+        gap: 12,
+    },
+    decisionActions: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    viewProfileBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#DBEAFE',
+        gap: 6,
+    },
+    viewProfileText: {
         fontSize: 13,
         fontWeight: 'bold',
         color: Colors.primary,
-    }
+    },
 });

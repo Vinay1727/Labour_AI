@@ -16,6 +16,9 @@ export interface IUser extends Document {
     reviewCount: number;
     rank: 'Top Labour' | 'Trusted' | 'Reliable' | 'Average' | 'Risky';
     trustScore: number;
+    pendingPhone?: string;
+    phoneUpdateOTP?: string;
+    phoneUpdateOTPExpire?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -39,7 +42,10 @@ const UserSchema: Schema = new Schema({
         enum: ['Top Labour', 'Trusted', 'Reliable', 'Average', 'Risky'],
         default: 'Average'
     },
-    trustScore: { type: Number, default: 0 }
+    trustScore: { type: Number, default: 0 },
+    pendingPhone: { type: String },
+    phoneUpdateOTP: { type: String },
+    phoneUpdateOTPExpire: { type: Date }
 }, {
     timestamps: true
 });

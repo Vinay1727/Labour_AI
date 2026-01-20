@@ -65,7 +65,7 @@ export default function HomeScreen() {
     const renderContractorView = () => (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             {/* Header Section */}
-            <View style={[styles.headerSection, { backgroundColor: Colors.headerBlue }]}>
+            <View style={[styles.headerSection, { backgroundColor: '#F8FAFC' }]}>
                 <View style={styles.headerContent}>
                     <Text style={styles.greeting}>{t('hello')} 👋</Text>
                     <Text style={styles.subGreeting}>{t('find_labour_near')}</Text>
@@ -74,7 +74,7 @@ export default function HomeScreen() {
                     onPress={() => navigation.navigate('Notification')}
                     style={styles.notifBtn}
                 >
-                    <AppIcon name="notifications-outline" size={26} color={Colors.textPrimary} />
+                    <AppIcon name="notifications-outline" size={28} color={Colors.textPrimary} />
                     {unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>}
                 </TouchableOpacity>
             </View>
@@ -85,18 +85,24 @@ export default function HomeScreen() {
                 onPress={() => navigation.navigate('PostNewWork')}
             >
                 <View style={styles.iconCircle}>
-                    <Text style={styles.bigIcon}>🏗️</Text>
+                    <AppIcon name="add" size={32} color={Colors.white} />
                 </View>
                 <View style={styles.primaryCardText}>
                     <Text style={styles.primaryActionTitle}>{t('post_new_work')}</Text>
-                    <Text style={styles.primaryActionSub}>{t('find_labour_near')}</Text>
+                    <Text style={styles.primaryActionSub}>Naya kaam post karein</Text>
                 </View>
-                <AppIcon name="add-circle" size={32} color={Colors.white} />
+                <AppIcon name="chevron-forward" size={24} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
 
             {/* Active Requests Section */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('your_posted_jobs')}</Text>
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>{t('your_posted_jobs')}</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('Deals')}>
+                        <Text style={styles.seeAllText}>Sab dekhein</Text>
+                    </TouchableOpacity>
+                </View>
+
                 {availableJobs.map((item, index) => (
                     <TouchableOpacity
                         key={item._id || index.toString()}
@@ -106,33 +112,25 @@ export default function HomeScreen() {
                         <View style={styles.requestInfo}>
                             <Text style={styles.workType}>{item.workType}</Text>
                             <View style={styles.locationRow}>
-                                <AppIcon name="location-outline" size={14} color={Colors.textLight} />
+                                <AppIcon name="location-outline" size={12} color={Colors.textLight} />
                                 <Text style={styles.locationText}>{item.location?.address || 'Location'}</Text>
                             </View>
-                            <Text style={styles.appliedCountText}>
-                                {item.filledWorkers} / {item.requiredWorkers} Workers • {item.applications?.length || 0} Applied
-                            </Text>
+                            <View style={styles.badgeRow}>
+                                <View style={styles.miniIconBadge}>
+                                    <AppIcon name="people-outline" size={12} color={Colors.primary} />
+                                    <Text style={styles.miniBadgeText}>{item.filledWorkers}/{item.requiredWorkers}</Text>
+                                </View>
+                            </View>
                         </View>
-                        <View style={[styles.statusBadge, {
-                            backgroundColor: item.status === 'open' ? '#FEF3C7' :
-                                item.status === 'in_progress' ? '#DBEAFE' :
-                                    item.status === 'completed' ? '#D1FAE5' : '#F3F4F6'
-                        }]}>
-                            <Text style={[styles.statusText, {
-                                color: item.status === 'open' ? '#B45309' :
-                                    item.status === 'in_progress' ? Colors.primary :
-                                        item.status === 'completed' ? '#059669' : Colors.textSecondary
-                            }]}>
-                                {item.status === 'completed' ? t('finished').toUpperCase() :
-                                    item.status === 'in_progress' ? t('in_progress').toUpperCase() :
-                                        item.status.toUpperCase()}
-                            </Text>
+                        <View style={[styles.roundActionBtnSmall, { backgroundColor: Colors.primaryLight }]}>
+                            <AppIcon name="chevron-forward" size={20} color={Colors.primary} />
                         </View>
                     </TouchableOpacity>
                 ))}
                 {availableJobs.length === 0 && (
                     <View style={styles.emptySmall}>
-                        <Text style={styles.emptyText}>{t('no_jobs_posted')}</Text>
+                        <AppIcon name="document-text-outline" size={40} color={Colors.border} />
+                        <Text style={styles.emptyText}>Abhi koi kaam nahi hai</Text>
                     </View>
                 )}
             </View>
@@ -146,19 +144,19 @@ export default function HomeScreen() {
 
     const renderLabourView = () => (
         <View style={styles.scrollView}>
-            <View style={[styles.headerSection, { backgroundColor: Colors.headerGreen }]}>
+            <View style={[styles.headerSection, { backgroundColor: '#F0FDF4' }]}>
                 <View style={styles.headerContent}>
                     <Text style={styles.greeting}>{t('nearby_work_for_you')}</Text>
                     <View style={styles.locationIndicator}>
                         <AppIcon name="location-outline" size={16} color={Colors.primary} />
-                        <Text style={styles.locationLabel}>Gurgaon, Haryana</Text>
+                        <Text style={styles.locationLabel}>Aapke Paas ka Kaam</Text>
                     </View>
                 </View>
                 <TouchableOpacity
                     onPress={() => navigation.navigate('Notification')}
                     style={styles.notifBtn}
                 >
-                    <AppIcon name="notifications-outline" size={26} color={Colors.textPrimary} />
+                    <AppIcon name="notifications-outline" size={28} color={Colors.textPrimary} />
                     {unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>}
                 </TouchableOpacity>
             </View>
@@ -166,8 +164,12 @@ export default function HomeScreen() {
             <FlatList
                 data={availableJobs}
                 keyExtractor={(item) => item._id}
-                contentContainerStyle={{ padding: spacing.layout.containerPaddding }}
-                ListHeaderComponent={<Text style={styles.sectionTitle}>{t('available_jobs')}</Text>}
+                contentContainerStyle={{ padding: spacing.md }}
+                ListHeaderComponent={
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>{t('available_jobs')}</Text>
+                    </View>
+                }
                 renderItem={({ item }) => {
                     const myApplication = item.applications?.find((app: any) => app.labourId === user?.id || app.labourId?._id === user?.id);
                     const isApplied = !!myApplication;
@@ -177,42 +179,51 @@ export default function HomeScreen() {
                             style={styles.jobCard}
                             onPress={() => navigation.navigate('Details', { itemId: item._id, itemType: 'job' })}
                         >
-                            <View style={styles.jobHeader}>
-                                <View>
-                                    <Text style={styles.jobRoleTitle}>{item.workType}</Text>
-                                    <Text style={styles.jobDistance}>
-                                        {item.location?.area ? `${item.location.area}, ${item.location.city}` : (item.location?.address || 'Location N/A')}
-                                    </Text>
+                            <View style={styles.jobMainInfo}>
+                                <View style={styles.jobAvatar}>
+                                    <AppIcon name="briefcase" size={24} color={Colors.primary} />
                                 </View>
-                                <View style={{ alignItems: 'flex-end' }}>
+                                <View style={styles.jobDetailsCol}>
+                                    <Text style={styles.jobRoleTitle}>{item.workType}</Text>
+                                    <View style={styles.locationRow}>
+                                        <AppIcon name="location-outline" size={12} color={Colors.textSecondary} />
+                                        <Text style={styles.jobDistance}>
+                                            {item.location?.area || 'Nearby'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={styles.jobPriceCol}>
                                     <Text style={styles.jobPrice}>₹{item.paymentAmount}</Text>
-                                    {isApplied && (
-                                        <View style={[styles.statusBadge, {
-                                            backgroundColor: myApplication.status === 'pending' ? '#FEF3C7' : myApplication.status === 'approved' ? '#D1FAE5' : '#FEE2E2',
-                                            marginTop: 4
-                                        }]}>
-                                            <Text style={[styles.statusText, {
-                                                color: myApplication.status === 'pending' ? '#B45309' : myApplication.status === 'approved' ? '#059669' : '#DC2626'
-                                            }]}>
-                                                {myApplication.status.toUpperCase()}
-                                            </Text>
-                                        </View>
-                                    )}
+                                    <Text style={styles.perDayLabel}>Dihadi</Text>
                                 </View>
                             </View>
 
-                            <View style={styles.jobActions}>
-                                <TouchableOpacity style={styles.ignoreButton}>
-                                    <Text style={styles.ignoreButtonText}>{t('ignore')}</Text>
-                                </TouchableOpacity>
+                            <View style={styles.jobFooterActions}>
+                                {isApplied ? (
+                                    <View style={[styles.statusInfoBadge, { backgroundColor: myApplication.status === 'approved' ? '#DCFCE7' : '#FEF3C7' }]}>
+                                        <AppIcon
+                                            name={myApplication.status === 'approved' ? 'checkmark-circle' : 'time-outline'}
+                                            size={14}
+                                            color={myApplication.status === 'approved' ? '#059669' : '#B45309'}
+                                        />
+                                        <Text style={[styles.statusInfoText, { color: myApplication.status === 'approved' ? '#059669' : '#B45309' }]}>
+                                            {myApplication.status === 'approved' ? 'Mili hai' : 'Sawaal hai'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        style={styles.quickApplyBtn}
+                                        onPress={() => handleApply(item._id)}
+                                    >
+                                        <AppIcon name="hand-right-outline" size={18} color={Colors.white} />
+                                        <Text style={styles.quickApplyText}>Apply Karein</Text>
+                                    </TouchableOpacity>
+                                )}
                                 <TouchableOpacity
-                                    style={[styles.acceptButton, isApplied && { backgroundColor: Colors.border }]}
-                                    onPress={() => !isApplied && handleApply(item._id)}
-                                    disabled={isApplied}
+                                    style={styles.viewDetailsIconBtn}
+                                    onPress={() => navigation.navigate('Details', { itemId: item._id, itemType: 'job' })}
                                 >
-                                    <Text style={[styles.acceptButtonText, isApplied && { color: Colors.textSecondary }]}>
-                                        {isApplied ? t('pending_approval') : t('apply')}
-                                    </Text>
+                                    <AppIcon name="eye-outline" size={20} color={Colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>
                         </TouchableOpacity>
@@ -220,8 +231,11 @@ export default function HomeScreen() {
                 }}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <AppIcon name="search-outline" size={60} color={Colors.border} />
-                        <Text style={styles.emptyText}>{t('no_work_nearby')}</Text>
+                        <View style={styles.emptyIllustration}>
+                            <AppIcon name="search-outline" size={80} color="#E2E8F0" />
+                        </View>
+                        <Text style={styles.emptyText}>Abhi koi naya kaam nahi hai</Text>
+                        <Text style={styles.emptySubText}>Jaise hi kaam milega yahan dikhega</Text>
                     </View>
                 }
             />
@@ -473,9 +487,131 @@ const styles = StyleSheet.create({
         padding: 20,
         alignItems: 'center',
     },
+    jobMainInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+        gap: 12,
+    },
+    jobAvatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    jobDetailsCol: {
+        flex: 1,
+    },
+    jobPriceCol: {
+        alignItems: 'flex-end',
+    },
+    perDayLabel: {
+        fontSize: 10,
+        color: Colors.textSecondary,
+        fontWeight: '600',
+    },
+    jobFooterActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 12,
+    },
+    statusInfoBadge: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 12,
+        gap: 6,
+    },
+    statusInfoText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+    quickApplyBtn: {
+        flex: 1,
+        backgroundColor: Colors.primary,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 12,
+        gap: 8,
+    },
+    quickApplyText: {
+        color: Colors.white,
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    viewDetailsIconBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyIllustration: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        marginTop: 6,
+        paddingHorizontal: 40,
+    },
     notifBtn: {
         position: 'relative',
         padding: 8,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.md,
+    },
+    seeAllText: {
+        fontSize: 14,
+        color: Colors.primary,
+        fontWeight: '600',
+    },
+    badgeRow: {
+        flexDirection: 'row',
+        marginTop: 8,
+        gap: 8,
+    },
+    miniIconBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        gap: 4,
+    },
+    miniBadgeText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
+    },
+    roundActionBtnSmall: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     badge: {
         position: 'absolute',

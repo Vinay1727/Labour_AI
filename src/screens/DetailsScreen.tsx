@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, FlatList, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
 import { Colors } from '../theme/colors';
@@ -17,6 +17,8 @@ export default function DetailsScreen({ route, navigation }: any) {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [isNewUser, setIsNewUser] = useState(false);
+    const [showSkillModal, setShowSkillModal] = useState(false);
+    const [applying, setApplying] = useState(false);
 
     useEffect(() => {
         fetchDetails();
@@ -73,7 +75,9 @@ export default function DetailsScreen({ route, navigation }: any) {
                             contractorPhone: item.contractorId?.phone,
                             labourName: item.labourId?.name || 'Labour',
                             labourPhone: item.labourId?.phone,
-                            labourFinishRequested: item.labourFinishRequested
+                            labourFinishRequested: item.labourFinishRequested,
+                            completionStatus: item.completionStatus,
+                            rejectionHistory: item.rejectionHistory
                         });
                     } else {
                         setData({
@@ -97,6 +101,32 @@ export default function DetailsScreen({ route, navigation }: any) {
             console.error('Fetch Details Error:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleApply = async (appliedSkill?: string) => {
+        if (!appliedSkill) {
+            const userSkills = user?.skills || [];
+            if (userSkills.length > 1) {
+                setShowSkillModal(true);
+                return;
+            } else {
+                appliedSkill = userSkills[0] || 'Helper';
+            }
+        }
+
+        try {
+            setApplying(true);
+            const res = await api.post(`jobs/${itemId}/apply`, { appliedSkill });
+            if (res.data.success) {
+                Alert.alert('Success', `Applied successfully as ${appliedSkill}`);
+                fetchDetails(); // Refresh to show applied status
+                setShowSkillModal(false);
+            }
+        } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || 'Application failed');
+        } finally {
+            setApplying(false);
         }
     };
 
@@ -277,12 +307,23 @@ export default function DetailsScreen({ route, navigation }: any) {
 
                 {/* 9. Actions */}
                 <View style={styles.actionsFooter}>
-                    <AppButton
-                        title="Message"
-                        onPress={() => navigation.navigate('Chat', { dealId: 'new', name: data.name, workType: data.skills?.[0] })}
-                        style={styles.mainAction}
-                        icon={<AppIcon name="chatbubble-ellipses-outline" size={20} color={Colors.white} />}
-                    />
+                    {fromDeals ? (
+                        <AppButton
+                            title={t('message' as any)}
+                            onPress={() => navigation.navigate('Chat', { dealId: data.id, name: data.name || data.contractorName, workType: data.title || data.skills?.[0] })}
+                            style={styles.mainAction}
+                            icon={<AppIcon name="chatbubble-ellipses-outline" size={20} color={Colors.white} />}
+                        />
+                    ) : (
+                        role === 'contractor' && (
+                            <AppButton
+                                title={t('call_worker' as any)}
+                                onPress={() => Linking.openURL(`tel:${data.phone}`)}
+                                style={[styles.mainAction, { backgroundColor: Colors.success }] as any}
+                                icon={<AppIcon name="call" size={20} color={Colors.white} />}
+                            />
+                        )
+                    )}
                     {role === 'contractor' && (
                         <TouchableOpacity
                             style={styles.callCircle}
@@ -299,61 +340,156 @@ export default function DetailsScreen({ route, navigation }: any) {
     const renderJobDetails = () => {
         const isApplied = data.applications?.some((app: any) => app.labourId === user?.id || app.labourId?._id === user?.id);
         return (
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <View style={styles.jobHeader}>
-                    <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>{data.status}</Text>
+            <>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <View style={styles.jobHeader}>
+                        <View style={styles.statusBadge}>
+                            <Text style={styles.statusText}>{data.status}</Text>
+                        </View>
+                        <Text style={styles.jobTitle}>{data.title}</Text>
+                        <View style={styles.locationTag}>
+                            <AppIcon name="location-outline" size={16} color={Colors.textSecondary} />
+                            <Text style={styles.locationTagText}>{data.location?.address || 'Site Location'}</Text>
+                        </View>
                     </View>
-                    <Text style={styles.jobTitle}>{data.title}</Text>
-                    <View style={styles.locationTag}>
-                        <AppIcon name="location-outline" size={16} color={Colors.textSecondary} />
-                        <Text style={styles.locationTagText}>{data.location?.address || 'Site Location'}</Text>
-                    </View>
-                </View>
 
-                <View style={styles.trustGrid}>
-                    <View style={styles.trustCard}>
-                        <AppIcon name="timer-outline" size={20} color={Colors.primary} />
-                        <Text style={styles.trustValueSmall}>{data.duration}</Text>
-                        <Text style={styles.trustLabel}>Duration</Text>
-                    </View>
-                    <View style={styles.trustCard}>
-                        <AppIcon name="cash-outline" size={20} color={Colors.success} />
-                        <Text style={styles.trustValueSmall}>{data.payment}</Text>
-                        <Text style={styles.trustLabel}>Payment</Text>
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Labour Required</Text>
-                    <View style={styles.whiteCard}>
-                        <Text style={styles.reqValue}>{data.labourAccepted || 0} / {data.labourRequired || 0} Workers joined</Text>
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Contractor</Text>
-                    <View style={styles.whiteCard}>
-                        <View style={styles.row}>
-                            <View style={styles.avatarSmall}>
-                                <Text style={styles.avatarTextSmall}>{data.contractorName?.charAt(0)}</Text>
+                    {fromDeals && role === 'labour' && data.completionStatus === 'rejected' && data.status === 'active' && data.rejectionHistory && data.rejectionHistory.length > 0 && (
+                        <View style={styles.rejectionDetailBox}>
+                            <View style={styles.rejectionDetailHeader}>
+                                <AppIcon name="warning" size={20} color={Colors.error} />
+                                <Text style={styles.rejectionDetailTitle}>Kaam check kariye (Rejected)</Text>
                             </View>
-                            <View style={styles.flex}>
-                                <Text style={styles.nameSmall}>{data.contractorName}</Text>
-                                <Text style={styles.locSmall}>{data.contractorLocation}</Text>
+                            <Text style={styles.rejectionDetailSub}>Contractor ne yeh wajahas batayi hain:</Text>
+                            {data.rejectionHistory[data.rejectionHistory.length - 1].reasonCodes.map((reason: string, i: number) => (
+                                <View key={i} style={styles.reasonRow}>
+                                    <AppIcon name="close-circle" size={14} color={Colors.error} />
+                                    <Text style={styles.reasonText}>{reason}</Text>
+                                </View>
+                            ))}
+                            {data.rejectionHistory[data.rejectionHistory.length - 1].note && (
+                                <View style={styles.noteBox}>
+                                    <Text style={styles.noteText}>Note: "{data.rejectionHistory[data.rejectionHistory.length - 1].note}"</Text>
+                                </View>
+                            )}
+                            <TouchableOpacity
+                                style={styles.retryBtn}
+                                onPress={() => navigation.goBack()}
+                            >
+                                <Text style={styles.retryBtnText}>Dobara Kaam Karein</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    <View style={styles.trustGrid}>
+                        <View style={styles.trustCard}>
+                            <AppIcon name="timer-outline" size={20} color={Colors.primary} />
+                            <Text style={styles.trustValueSmall}>{data.duration}</Text>
+                            <Text style={styles.trustLabel}>Duration</Text>
+                        </View>
+                        <View style={styles.trustCard}>
+                            <AppIcon name="cash-outline" size={20} color={Colors.success} />
+                            <Text style={styles.trustValueSmall}>{data.payment}</Text>
+                            <Text style={styles.trustLabel}>Payment</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Labour Required</Text>
+                        <View style={styles.whiteCard}>
+                            <Text style={styles.reqValue}>{data.labourAccepted || 0} / {data.labourRequired || 0} Workers joined</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Contractor</Text>
+                        <View style={styles.whiteCard}>
+                            <View style={styles.row}>
+                                <View style={styles.avatarSmall}>
+                                    <Text style={styles.avatarTextSmall}>{data.contractorName?.charAt(0)}</Text>
+                                </View>
+                                <View style={styles.flex}>
+                                    <Text style={styles.nameSmall}>{data.contractorName}</Text>
+                                    <Text style={styles.locSmall}>{data.contractorLocation}</Text>
+                                </View>
                             </View>
                         </View>
                     </View>
-                </View>
 
-                {!isApplied && !fromDeals && role === 'labour' && (
-                    <AppButton
-                        title="Kaam ke liye apply karein"
-                        onPress={() => Alert.alert('Apply', 'Application sent')}
-                        style={{ marginTop: 20 }}
-                    />
-                )}
-            </ScrollView>
+                    {role === 'labour' && !fromDeals && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Aapki Applications</Text>
+                            <View style={styles.whiteCard}>
+                                {data.applications?.filter((app: any) => (app.labourId === user?.id || app.labourId?._id === user?.id))
+                                    .map((app: any, i: number) => (
+                                        <View key={i} style={styles.appRow}>
+                                            <Text style={styles.appSkill}>{app.appliedSkill}</Text>
+                                            <View style={[styles.miniStatus, { backgroundColor: app.status === 'approved' ? '#D1FAE5' : app.status === 'rejected' ? '#FEE2E2' : '#FEF3C7' }]}>
+                                                <AppIcon
+                                                    name={app.status === 'approved' ? 'checkmark-circle' : app.status === 'rejected' ? 'close-circle' : 'timer-outline'}
+                                                    size={12}
+                                                    color={app.status === 'approved' ? '#059669' : app.status === 'rejected' ? '#DC2626' : '#B45309'}
+                                                />
+                                                <Text style={[styles.miniStatusText, { color: app.status === 'approved' ? '#059669' : app.status === 'rejected' ? '#DC2626' : '#B45309' }]}>
+                                                    {app.status === 'approved' ? 'Mili' : app.status === 'rejected' ? 'Nahi' : 'Sawal'}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    ))
+                                }
+                                {data.applications?.filter((app: any) => (app.labourId === user?.id || app.labourId?._id === user?.id)).length === 0 && (
+                                    <Text style={styles.emptyInfo}>Abhi tak apply nahi kiya</Text>
+                                )}
+                            </View>
+                        </View>
+                    )}
+
+                    {!fromDeals && role === 'labour' && (
+                        <TouchableOpacity
+                            style={styles.mainApplyBtn}
+                            onPress={() => handleApply()}
+                        >
+                            <AppIcon name="hand-right-outline" size={24} color={Colors.white} />
+                            <Text style={styles.mainApplyBtnText}>Kaam ke liye Apply Karein</Text>
+                        </TouchableOpacity>
+                    )}
+                </ScrollView>
+
+                <Modal
+                    visible={showSkillModal}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowSkillModal(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Choose Skill</Text>
+                            <Text style={styles.modalSubTitle}>Pick skill for this application</Text>
+
+                            {(user?.skills || []).map((skill: string) => {
+                                const alreadyApplied = data.applications?.some(
+                                    (app: any) => (app.labourId === user?.id || app.labourId?._id === user?.id) && app.appliedSkill === skill
+                                );
+
+                                return (
+                                    <TouchableOpacity
+                                        key={skill}
+                                        style={[styles.skillItem, alreadyApplied && styles.skillItemDisabled]}
+                                        onPress={() => !alreadyApplied && handleApply(skill)}
+                                        disabled={alreadyApplied}
+                                    >
+                                        <Text style={[styles.skillItemText, alreadyApplied && styles.skillItemTextDisabled]}>{skill}</Text>
+                                        {alreadyApplied && <Text style={styles.alreadyAppliedLabel}>Already Applied</Text>}
+                                    </TouchableOpacity>
+                                );
+                            })}
+
+                            <TouchableOpacity style={styles.closeBtn} onPress={() => setShowSkillModal(false)}>
+                                <Text style={styles.closeBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            </>
         );
     };
 
@@ -449,9 +585,29 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         lineHeight: 18,
     },
-    jobHeader: { backgroundColor: Colors.white, padding: spacing.lg, borderRadius: 20, marginBottom: spacing.md, alignItems: 'center' },
-    statusBadge: { backgroundColor: '#FEF3C7', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
-    statusText: { fontSize: 10, color: '#B45309', fontWeight: 'bold', textTransform: 'uppercase' },
+    mainApplyBtn: {
+        backgroundColor: Colors.primary,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 16,
+        marginTop: 20,
+        gap: 10,
+        elevation: 4,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    mainApplyBtnText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    jobHeader: { backgroundColor: Colors.white, padding: spacing.lg, borderRadius: 24, marginBottom: spacing.md, alignItems: 'center', elevation: 2 },
+    statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginBottom: 12, gap: 6 },
+    statusText: { fontSize: 11, color: '#B45309', fontWeight: 'bold', textTransform: 'uppercase' },
     jobTitle: { fontSize: 22, fontWeight: 'bold', textAlign: 'center' },
     locationTag: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
     locationTagText: { fontSize: 13, color: Colors.textSecondary },
@@ -462,4 +618,79 @@ const styles = StyleSheet.create({
     nameSmall: { fontSize: 14, fontWeight: 'bold' },
     locSmall: { fontSize: 11, color: Colors.textSecondary },
     reqValue: { fontSize: 15, fontWeight: '600', color: Colors.primary, textAlign: 'center' },
+    appRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    appSkill: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+    miniStatus: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 4 },
+    miniStatusText: { fontSize: 10, fontWeight: 'bold' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+    modalContent: { backgroundColor: Colors.white, borderRadius: 20, padding: 20 },
+    modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4, textAlign: 'center' },
+    modalSubTitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 20, textAlign: 'center' },
+    skillItem: { padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    skillItemDisabled: { backgroundColor: '#F8FAFC', borderColor: '#F1F5F9' },
+    skillItemText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+    skillItemTextDisabled: { color: Colors.textLight },
+    alreadyAppliedLabel: { fontSize: 10, color: Colors.primary, fontWeight: 'bold' },
+    closeBtn: { marginTop: 10, padding: 12, alignItems: 'center' },
+    closeBtnText: { color: Colors.textSecondary, fontWeight: 'bold' },
+    rejectionDetailBox: {
+        backgroundColor: '#FFF1F2',
+        marginHorizontal: spacing.l,
+        padding: 16,
+        borderRadius: 20,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#FECDD3',
+    },
+    rejectionDetailHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    rejectionDetailTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.error,
+    },
+    rejectionDetailSub: {
+        fontSize: 13,
+        color: '#9F1239',
+        marginBottom: 8,
+        fontWeight: '600',
+    },
+    reasonRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+        paddingLeft: 4,
+    },
+    reasonText: {
+        fontSize: 14,
+        color: '#BE123C',
+    },
+    noteBox: {
+        marginTop: 10,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        padding: 10,
+        borderRadius: 10,
+    },
+    noteText: {
+        fontSize: 13,
+        color: '#BE123C',
+        fontStyle: 'italic',
+    },
+    retryBtn: {
+        backgroundColor: Colors.error,
+        marginTop: 16,
+        padding: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    retryBtnText: {
+        color: Colors.white,
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
 });

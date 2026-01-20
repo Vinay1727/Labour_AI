@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppIcon } from '../components/common/AppIcon';
 import { Colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { ChatListItem } from '../components/chat/ChatListItem';
+import { useAuth } from '../context/AuthContext';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
 import api from '../services/api';
 
 export default function MessagesScreen() {
+    const { role } = useAuth();
     const navigation = useNavigation<any>();
     const isFocused = useIsFocused();
     const { t } = useTranslation();
@@ -38,7 +41,12 @@ export default function MessagesScreen() {
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <Text style={styles.title}>{t('messages_tab' as any)}</Text>
+                <View style={styles.headerTop}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <AppIcon name="arrow-back" size={24} color={Colors.textPrimary} />
+                    </TouchableOpacity>
+                    <Text style={styles.title}>{t('messages_tab' as any)}</Text>
+                </View>
                 <Text style={styles.subTitle}>{t('work_conversations' as any)}</Text>
             </View>
 
@@ -71,10 +79,10 @@ export default function MessagesScreen() {
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <View style={styles.emptyIllustration}>
-                                <Text style={styles.emptyIcon}>💬</Text>
+                                <AppIcon name="chatbubbles-outline" size={100} color="#E2E8F0" />
                             </View>
-                            <Text style={styles.emptyText}>{t('no_messages_yet' as any)}</Text>
-                            <Text style={styles.emptySubText}>{t('contact_someone_chats' as any)}</Text>
+                            <Text style={styles.emptyText}>{t('no_messages_hinglish' as any)}</Text>
+                            <Text style={styles.emptySubText}>{t('no_messages_sub' as any)}</Text>
                         </View>
                     }
                 />
@@ -86,6 +94,8 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8FAFC' },
     header: { padding: spacing.l, backgroundColor: '#DBEAFE', borderBottomLeftRadius: 24, borderBottomRightRadius: 24, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, marginBottom: spacing.m },
+    headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+    backBtn: { marginRight: spacing.s, marginLeft: -spacing.s, padding: 4 },
     title: { fontSize: 24, fontWeight: 'bold', color: Colors.textPrimary },
     subTitle: { fontSize: 14, color: Colors.textSecondary, marginTop: 4 },
     listContent: { paddingBottom: 100 },

@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAttendance extends Document {
     dealId: mongoose.Schema.Types.ObjectId;
+    jobId: mongoose.Schema.Types.ObjectId;
     labourId: mongoose.Schema.Types.ObjectId;
     date: Date;
     timestamp: Date;
@@ -16,6 +17,7 @@ export interface IAttendance extends Document {
 
 const AttendanceSchema: Schema = new Schema({
     dealId: { type: mongoose.Schema.Types.ObjectId, ref: 'Deal', required: true },
+    jobId: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', required: true },
     labourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     date: { type: Date, required: true },
     timestamp: { type: Date, default: Date.now },
@@ -27,7 +29,13 @@ const AttendanceSchema: Schema = new Schema({
     imageUrl: { type: String, required: true },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+AttendanceSchema.virtual('id').get(function (this: any) {
+    return this._id.toHexString();
 });
 
 export default mongoose.model<IAttendance>('Attendance', AttendanceSchema);

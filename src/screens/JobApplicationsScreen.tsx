@@ -30,9 +30,9 @@ export default function JobApplicationsScreen({ route, navigation }: any) {
         }
     };
 
-    const handleAction = async (labourId: string, action: 'approve' | 'reject') => {
+    const handleAction = async (labourId: string, action: 'approve' | 'reject', appliedSkill: string) => {
         try {
-            const res = await api.post(`jobs/${jobId}/applications/${labourId}`, { action });
+            const res = await api.post(`jobs/${jobId}/applications/${labourId}`, { action, appliedSkill });
             if (res.data.success) {
                 Alert.alert('Success', `Application ${action}d`);
                 fetchJobDetails();
@@ -44,6 +44,7 @@ export default function JobApplicationsScreen({ route, navigation }: any) {
 
     const renderItem = ({ item }: { item: any }) => {
         const labour = item.labourId;
+        const appliedSkill = item.appliedSkill || 'Helper';
         return (
             <View style={styles.card}>
                 <TouchableOpacity
@@ -52,7 +53,7 @@ export default function JobApplicationsScreen({ route, navigation }: any) {
                         itemId: labour._id,
                         itemType: 'labour',
                         name: labour.name,
-                        skills: [labour.skill || 'Helper']
+                        skills: labour.skills || [appliedSkill]
                     })}
                 >
                     <View style={styles.avatar}>
@@ -60,7 +61,10 @@ export default function JobApplicationsScreen({ route, navigation }: any) {
                     </View>
                     <View style={styles.info}>
                         <Text style={styles.labourName}>{labour.name}</Text>
-                        <Text style={styles.skillText}>{labour.skill || 'Helper'}</Text>
+                        <View style={styles.skillRow}>
+                            <Text style={styles.skillLabel}>Applied as: </Text>
+                            <Text style={styles.skillValue}>{appliedSkill}</Text>
+                        </View>
                         <View style={styles.locationRow}>
                             <AppIcon name="location-outline" size={14} color={Colors.textSecondary} />
                             <Text style={styles.locationText}>{labour.location?.area || 'Local'}</Text>
@@ -82,13 +86,13 @@ export default function JobApplicationsScreen({ route, navigation }: any) {
                         <View style={styles.actions}>
                             <TouchableOpacity
                                 style={[styles.btn, styles.rejectBtn]}
-                                onPress={() => handleAction(labour._id, 'reject')}
+                                onPress={() => handleAction(labour._id, 'reject', appliedSkill)}
                             >
                                 <Text style={styles.rejectBtnText}>{t('ignore')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.btn, styles.approveBtn]}
-                                onPress={() => handleAction(labour._id, 'approve')}
+                                onPress={() => handleAction(labour._id, 'approve', appliedSkill)}
                             >
                                 <Text style={styles.approveBtnText}>{t('approve')}</Text>
                             </TouchableOpacity>
@@ -141,7 +145,7 @@ export default function JobApplicationsScreen({ route, navigation }: any) {
 
             <FlatList
                 data={job?.applications}
-                keyExtractor={(item, index) => item.labourId?._id || index.toString()}
+                keyExtractor={(item, index) => `${item.labourId?._id}_${item.appliedSkill}_${index}`}
                 renderItem={renderItem}
                 contentContainerStyle={styles.list}
                 ListEmptyComponent={
@@ -234,8 +238,18 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.textPrimary,
     },
-    skillText: {
-        fontSize: 14,
+    skillRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+    },
+    skillLabel: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+    },
+    skillValue: {
+        fontSize: 13,
+        fontWeight: 'bold',
         color: Colors.primary,
     },
     locationRow: {

@@ -9,7 +9,7 @@ export const LabourHome = ({ navigation }: any) => {
     return (
         <ScreenWrapper>
             <Header title="Find Work" />
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
                 <View style={styles.actionSection}>
                     <Text style={styles.sectionTitle}>Status</Text>
                     <View style={styles.statusBox}>
