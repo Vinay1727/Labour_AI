@@ -4,7 +4,9 @@ import {
     applyForJob,
     requestCompletion,
     approveCompletion,
+    rejectCompletion,
     updateDealStatus,
+    approveApplication,
     getDeal,
     getDeals
 } from '../controllers/deal.controller';
@@ -19,8 +21,10 @@ router.get('/:dealId', protect, getDeal);
 router.post('/apply', protect, restrictTo('labour'), applyForJob);
 
 // New Lifecycle Routes
+router.post('/approve', protect, restrictTo('contractor'), approveApplication);
 router.put('/status', protect, restrictTo('contractor'), updateDealStatus);
 router.post('/:dealId/request-completion', protect, restrictTo('labour'), requestCompletion);
 router.post('/:dealId/approve-completion', protect, restrictTo('contractor'), approveCompletion);
+router.post('/:dealId/reject-completion', protect, restrictTo('contractor'), rejectCompletion);
 
 export default router;

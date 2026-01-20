@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import Review from '../models/Review.model';
 import User from '../models/User.model';
+import Deal from '../models/Deal.model';
 import { success, error } from '../utils/response';
 import { calculateLabourRank } from '../services/ranking.service';
 
@@ -15,6 +16,12 @@ export const createReview = async (req: AuthRequest, res: Response) => {
             return error(res, 'You have already reviewed this deal', 400);
         }
 
+        const deal = await Deal.findById(dealId);
+        if (!deal) return error(res, 'Deal not found', 404);
+        if (!['finished', 'completed'].includes(deal.status)) {
+            return error(res, 'Rating allowed only after work approval', 400);
+        }
+
         const review = await Review.create({
             dealId,
             reviewerId: req.user._id,
@@ -22,6 +29,19 @@ export const createReview = async (req: AuthRequest, res: Response) => {
             rating,
             comment
         });
+
+        // Update Deal rating flags
+        if (req.user.role === 'labour') {
+            deal.labourRated = true;
+        } else {
+            deal.contractorRated = true;
+        }
+
+        // If both rated, internal status becomes terminal 'completed'
+        if (deal.labourRated && deal.contractorRated) {
+            deal.status = 'completed';
+        }
+        await deal.save();
 
         // Update Reviewee's average rating
         const user = await User.findById(reviewedUserId);

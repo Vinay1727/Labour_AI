@@ -19,8 +19,8 @@ export const JobCard: React.FC<JobCardProps> = ({
     return (
         <TouchableOpacity style={styles.card} onPress={onPress}>
             <View style={styles.content}>
-                <Text style={styles.title}>{title}</Text>
-                <Text style={styles.location}>{location}</Text>
+                <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">{title}</Text>
+                <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">{location}</Text>
                 {pay && <Text style={styles.pay}>{pay}</Text>}
                 <Text style={styles.date}>{postedAt}</Text>
             </View>

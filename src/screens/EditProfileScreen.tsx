@@ -9,7 +9,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
@@ -21,11 +22,16 @@ import { AppButton } from '../components/common/AppButton';
 import { useTranslation } from '../context/LanguageContext';
 
 export default function EditProfileScreen({ navigation }: any) {
-    const { user, role, updateProfile } = useAuth();
+    const { user, role, updateProfile, requestPhoneChange, verifyPhoneChange } = useAuth();
     const { t } = useTranslation();
     const isLabour = role === 'labour';
 
     const [loading, setLoading] = useState(false);
+    const [newPhone, setNewPhone] = useState('');
+    const [showOtpModal, setShowOtpModal] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [verifying, setVerifying] = useState(false);
+
     const [formData, setFormData] = useState({
         name: user?.name || '',
         location: typeof user?.location === 'object' ? `${user.location.area}, ${user.location.city}` : user?.location || '',
@@ -85,6 +91,50 @@ export default function EditProfileScreen({ navigation }: any) {
         }
     };
 
+    const handleInitiatePhoneChange = async () => {
+        if (newPhone.length < 10) {
+            Alert.alert("Invalid Phone", "Please enter a valid 10-digit number");
+            return;
+        }
+
+        if (newPhone === user?.phone) {
+            Alert.alert("Old Phone", "This is already your current mobile number");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await requestPhoneChange(newPhone);
+            setShowOtpModal(true);
+            // In dev mode, OTP is 1234
+            Alert.alert("OTP Sent", `Verification code sent to ${newPhone}.\n(Use 1234 for testing)`);
+        } catch (error: any) {
+            Alert.alert("Error", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (otp.length < 4) {
+            Alert.alert("Invalid OTP", "Please enter 4-digit code");
+            return;
+        }
+
+        setVerifying(true);
+        try {
+            await verifyPhoneChange(otp);
+            setShowOtpModal(false);
+            setOtp('');
+            setNewPhone('');
+            Alert.alert("Success", "Mobile number updated successfully!");
+        } catch (error: any) {
+            Alert.alert("Verification Failed", error);
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -126,6 +176,28 @@ export default function EditProfileScreen({ navigation }: any) {
                             <View style={[styles.input, styles.disabledInput]}>
                                 <Text style={styles.disabledInputText}>{user?.phone || '+91 9876543210'}</Text>
                                 <AppIcon name="lock-closed" size={16} color={Colors.textSecondary} />
+                            </View>
+                            <Text style={styles.helperText}>Changing primary mobile requires verification</Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>New Mobile Number</Text>
+                            <View style={styles.phoneInputRow}>
+                                <TextInput
+                                    style={[styles.input, { flex: 1 }]}
+                                    value={newPhone}
+                                    onChangeText={setNewPhone}
+                                    placeholder="Enter new number"
+                                    keyboardType="phone-pad"
+                                    maxLength={10}
+                                />
+                                <TouchableOpacity
+                                    style={[styles.changeBtn, (!newPhone || newPhone.length < 10) && styles.disabledBtn]}
+                                    onPress={handleInitiatePhoneChange}
+                                    disabled={!newPhone || newPhone.length < 10 || loading}
+                                >
+                                    <Text style={styles.changeBtnText}>Change</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
 
@@ -216,6 +288,55 @@ export default function EditProfileScreen({ navigation }: any) {
 
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* OTP Verification Modal */}
+            <Modal
+                visible={showOtpModal}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowOtpModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Verify New Number</Text>
+                        <Text style={styles.modalSubTitle}>Enter the 4-digit code sent to {newPhone}</Text>
+
+                        <TextInput
+                            style={styles.otpInput}
+                            value={otp}
+                            onChangeText={setOtp}
+                            keyboardType="number-pad"
+                            maxLength={4}
+                            placeholder="X X X X"
+                            autoFocus
+                        />
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                onPress={() => {
+                                    setShowOtpModal(false);
+                                    setOtp('');
+                                }}
+                            >
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.verifyBtn, otp.length < 4 && styles.disabledBtn]}
+                                onPress={handleVerifyOtp}
+                                disabled={otp.length < 4 || verifying}
+                            >
+                                {verifying ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <Text style={styles.verifyBtnText}>Verify & Update</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -326,5 +447,86 @@ const styles = StyleSheet.create({
     footerAction: {
         marginTop: spacing.xl,
         paddingBottom: 40,
+    },
+    phoneInputRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    changeBtn: {
+        backgroundColor: Colors.primary,
+        borderRadius: 12,
+        paddingHorizontal: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    changeBtnText: {
+        color: Colors.white,
+        fontWeight: 'bold',
+    },
+    disabledBtn: {
+        opacity: 0.5,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        padding: 24,
+    },
+    modalContent: {
+        backgroundColor: Colors.white,
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
+        marginBottom: 8,
+    },
+    modalSubTitle: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    otpInput: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        letterSpacing: 10,
+        borderBottomWidth: 2,
+        borderBottomColor: Colors.primary,
+        width: 200,
+        textAlign: 'center',
+        marginBottom: 32,
+        color: Colors.textPrimary,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
+    },
+    cancelBtn: {
+        flex: 1,
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        alignItems: 'center',
+    },
+    cancelBtnText: {
+        color: Colors.textSecondary,
+        fontWeight: 'bold',
+    },
+    verifyBtn: {
+        flex: 2,
+        backgroundColor: Colors.success || '#4CAF50',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    verifyBtnText: {
+        color: Colors.white,
+        fontWeight: 'bold',
     }
 });

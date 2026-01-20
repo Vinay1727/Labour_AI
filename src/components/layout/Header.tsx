@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onBack, rightAction }) =>
                 )}
             </View>
 
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{title}</Text>
 
             <View style={styles.rightContainer}>
                 {rightAction}

@@ -30,6 +30,8 @@ interface AuthContextType {
   logout: () => void;
   updateProfile: (newData: Partial<User>) => Promise<void>;
   updateRole: (role: Role) => Promise<void>;
+  requestPhoneChange: (newPhone: string) => Promise<{ otp: string }>;
+  verifyPhoneChange: (otp: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -194,8 +196,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const requestPhoneChange = async (newPhone: string) => {
+    try {
+      const res = await api.post('users/request-phone-change', { newPhone });
+      return res.data.data;
+    } catch (e: any) {
+      console.error('Request Phone Change Failed', e);
+      throw e.response?.data?.message || 'Failed to request phone change';
+    }
+  };
+
+  const verifyPhoneChange = async (otp: string) => {
+    try {
+      const res = await api.post('users/verify-phone-change', { otp });
+      if (res.data.success) {
+        const normalizedUser = normalizeUser(res.data.data);
+        await SecureStore.setItemAsync('userData', JSON.stringify(normalizedUser));
+        setUser(normalizedUser);
+      }
+    } catch (e: any) {
+      console.error('Verify Phone Change Failed', e);
+      throw e.response?.data?.message || 'Invalid OTP';
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ role, user, login, logout, checkUser, verifyOtp, updateProfile, updateRole, loading: false }}>
+    <AuthContext.Provider value={{
+      role,
+      user,
+      login,
+      logout,
+      checkUser,
+      verifyOtp,
+      updateProfile,
+      updateRole,
+      requestPhoneChange,
+      verifyPhoneChange,
+      loading: false
+    }}>
       {children}
     </AuthContext.Provider>
   );

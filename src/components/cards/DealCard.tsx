@@ -31,7 +31,7 @@ export const DealCard: React.FC<DealCardProps> = ({
     return (
         <TouchableOpacity style={styles.card} onPress={onPress}>
             <View style={styles.header}>
-                <Text style={styles.jobTitle}>{jobTitle}</Text>
+                <Text style={styles.jobTitle} numberOfLines={2} ellipsizeMode="tail">{jobTitle}</Text>
                 <Text style={[styles.status, { color: getStatusColor(status) }]}>
                     {status.toUpperCase()}
                 </Text>

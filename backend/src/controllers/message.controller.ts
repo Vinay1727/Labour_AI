@@ -7,7 +7,7 @@ import { NotificationService } from '../services/notification.service';
 
 export const sendMessage = async (req: AuthRequest, res: Response) => {
     try {
-        const { dealId, message, receiverId } = req.body;
+        const { dealId, message } = req.body;
         const senderId = req.user._id;
 
         // 1. Validate Deal existence and status
@@ -18,17 +18,18 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
         // 2. STRICT RULE: Check if deal is approved
         // Approval means status is NOT 'applied' and NOT 'rejected'
-        const allowedStatuses = ['assigned', 'active', 'completion_requested', 'completed'];
+        const allowedStatuses = ['assigned', 'active', 'completion_requested', 'finished', 'completed'];
         if (!allowedStatuses.includes(deal.status)) {
             return error(res, 'Messaging is only allowed for approved/active deals', 403);
         }
 
-        // 3. Prevent messaging if user is not part of the deal
-        const isParticipant =
-            deal.contractorId.toString() === senderId.toString() ||
-            deal.labourId.toString() === senderId.toString();
-
-        if (!isParticipant) {
+        // 3. Determine Receiver & Validate Participation
+        let receiverId;
+        if (deal.contractorId.toString() === senderId.toString()) {
+            receiverId = deal.labourId;
+        } else if (deal.labourId.toString() === senderId.toString()) {
+            receiverId = deal.contractorId;
+        } else {
             return error(res, 'You are not a participant in this deal', 403);
         }
 
@@ -42,7 +43,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
         // 5. Send Notification to Receiver
         await NotificationService.createNotification({
-            userId: receiverId,
+            userId: receiverId as any, // Cast to avoid TS type conflict
             title: `Naya Message 💬 - ${req.user.name || 'User'}`,
             message: message.length > 50 ? message.substring(0, 47) + '...' : message,
             type: 'message',
@@ -88,7 +89,7 @@ export const getActiveChats = async (req: AuthRequest, res: Response) => {
         // Get all deals where user is a participant and status is approved
         const approvedDeals = await Deal.find({
             $or: [{ contractorId: userId }, { labourId: userId }],
-            status: { $in: ['assigned', 'active', 'completion_requested', 'completed'] }
+            status: { $in: ['assigned', 'active', 'completion_requested', 'finished', 'completed'] }
         })
             .populate('contractorId', 'name phone')
             .populate('labourId', 'name phone')

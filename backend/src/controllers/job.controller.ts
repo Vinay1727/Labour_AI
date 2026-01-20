@@ -8,7 +8,17 @@ import { NotificationService } from '../services/notification.service';
 
 export const createJob = async (req: AuthRequest, res: Response) => {
     try {
-        const job = await Job.create({ ...req.body, contractorId: req.user._id });
+        const { workType, description, requiredWorkers, paymentAmount, paymentType, location } = req.body;
+
+        const job = await Job.create({
+            contractorId: req.user._id,
+            workType,
+            description,
+            requiredWorkers,
+            paymentAmount,
+            paymentType,
+            location
+        });
         success(res, job, 'Job created');
     } catch (e: any) {
         error(res, e.message);
@@ -97,33 +107,53 @@ export const getJobDetails = async (req: AuthRequest, res: Response) => {
 export const applyToJob = async (req: AuthRequest, res: Response) => {
     try {
         const { jobId } = req.params;
+        const { appliedSkill } = req.body;
         const labourId = req.user._id;
 
         if (req.user.role !== 'labour') {
             return error(res, 'Only labours can apply to jobs', 403);
         }
 
+        if (!appliedSkill) {
+            return error(res, 'Sahi skill select karein', 400);
+        }
+
         const job = await Job.findById(jobId);
         if (!job) return error(res, 'Job not found', 404);
         if (job.status !== 'open') return error(res, 'Job is no longer open for applications', 400);
 
-        // Check if already applied
-        const alreadyApplied = job.applications.some(app => app.labourId.toString() === labourId.toString());
-        if (alreadyApplied) return error(res, 'You have already applied to this job', 400);
+        // Check if already applied for THIS skill
+        const alreadyAppliedForSkill = job.applications.some(
+            app => app.labourId.toString() === labourId.toString() && app.appliedSkill === appliedSkill
+        );
+        if (alreadyAppliedForSkill) {
+            return error(res, `Aapne pehle hi "${appliedSkill}" ke liye apply kiya hua hai`, 400);
+        }
 
         job.applications.push({
             labourId: labourId as any,
+            appliedSkill,
             status: 'pending',
             appliedAt: new Date()
         });
 
         await job.save();
 
+        // New: Create a Deal entry for this application so it shows in Deals tab
+        await Deal.create({
+            jobId: job._id,
+            labourId: labourId,
+            contractorId: job.contractorId,
+            status: 'applied',
+            appliedSkill,
+            paymentStatus: 'pending'
+        });
+
         // Send Notification to Contractor
         await NotificationService.createNotification({
             userId: job.contractorId.toString(),
             title: 'Nayi Application 🧑‍🔧',
-            message: `${req.user.name || 'Ek labour'} ne aapke kaam "${job.workType}" ke liye apply kiya hai.`,
+            message: `${req.user.name || 'Ek labour'} ne "${appliedSkill}" ke taur par apply kiya hai.`,
             type: 'application',
             relatedId: job._id.toString(),
             route: 'JobApplications'
@@ -136,7 +166,7 @@ export const applyToJob = async (req: AuthRequest, res: Response) => {
 export const handleApplication = async (req: AuthRequest, res: Response) => {
     try {
         const { jobId, labourId } = req.params;
-        const { action } = req.body; // 'approve' or 'reject'
+        const { action, appliedSkill } = req.body; // 'approve' or 'reject'
 
         if (req.user.role !== 'contractor') {
             return error(res, 'Only contractors can handle applications', 403);
@@ -148,7 +178,9 @@ export const handleApplication = async (req: AuthRequest, res: Response) => {
             return error(res, 'Unauthorized', 401);
         }
 
-        const application = job.applications.find(app => app.labourId.toString() === labourId);
+        const application = job.applications.find(
+            app => app.labourId.toString() === labourId && app.appliedSkill === appliedSkill
+        );
         if (!application) return error(res, 'Application not found', 404);
 
         if (action === 'approve') {
@@ -162,21 +194,50 @@ export const handleApplication = async (req: AuthRequest, res: Response) => {
                 job.status = 'in_progress';
             }
 
-            // Create actual work Deal
-            await Deal.create({
-                jobId: job._id,
-                contractorId: job.contractorId,
-                labourId: labourId,
-                status: 'active'
-            });
+            // AUTO-REJECT other skills from the SAME labour for THIS job
+            const otherApplications = job.applications.filter(
+                app => app.labourId.toString() === labourId && app.appliedSkill !== appliedSkill && app.status === 'pending'
+            );
+
+            for (const otherApp of otherApplications) {
+                otherApp.status = 'rejected';
+                // Notify auto-rejection
+                await NotificationService.createNotification({
+                    userId: labourId,
+                    title: 'Skill Application Update',
+                    message: `Aapka "${appliedSkill}" approve ho gaya hai, isliye "${otherApp.appliedSkill}" ki application band kar di gayi hai.`,
+                    type: 'rejection',
+                    relatedId: job._id.toString(),
+                    route: 'Deals'
+                });
+            }
+
+            // Update existing Deal from 'applied' to 'active'
+            const existingDeal = await Deal.findOneAndUpdate(
+                { jobId: job._id, labourId: labourId, appliedSkill, status: 'applied' },
+                { status: 'active' },
+                { new: true }
+            );
+
+            if (!existingDeal) {
+                // Fallback if deal wasn't created yet
+                await Deal.create({
+                    jobId: job._id,
+                    contractorId: job.contractorId,
+                    labourId: labourId,
+                    appliedSkill,
+                    status: 'active'
+                });
+            }
 
         } else if (action === 'reject') {
-            // If it was already approved, decrement filled count
-            if (application.status === 'approved') {
-                job.filledWorkers -= 1;
-                job.status = 'open';
-            }
             application.status = 'rejected';
+
+            // Update Deal status to rejected as well
+            await Deal.findOneAndUpdate(
+                { jobId: job._id, labourId: labourId, appliedSkill, status: 'applied' },
+                { status: 'rejected' }
+            );
         } else {
             return error(res, 'Invalid action', 400);
         }
@@ -188,8 +249,8 @@ export const handleApplication = async (req: AuthRequest, res: Response) => {
             userId: labourId,
             title: action === 'approve' ? 'Kaam Mil Gaya! ✔️' : 'Application Rejected ❌',
             message: action === 'approve'
-                ? `Contractor ne aapka "${job.workType}" ke liye application approve kar diya hai. Ab Deals page par jayein.`
-                : `Aapka "${job.workType}" ke liye application reject ho gaya hai. Doosre kaam dekhein.`,
+                ? `Contractor ne aapka "${appliedSkill}" ke liye application approve kar diya hai. Ab Deals page par jayein.`
+                : `Aapka "${appliedSkill}" ke liye application reject ho gaya hai. Doosre kaam dekhein.`,
             type: action === 'approve' ? 'approval' : 'rejection',
             relatedId: job._id.toString(),
             route: action === 'approve' ? 'Deals' : 'Main'

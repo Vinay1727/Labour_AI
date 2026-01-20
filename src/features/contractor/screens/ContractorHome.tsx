@@ -9,7 +9,7 @@ export const ContractorHome = ({ navigation }: any) => {
     return (
         <ScreenWrapper>
             <Header title="Contractor Dashboard" />
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
                 <View style={styles.actionSection}>
                     <Text style={styles.sectionTitle}>Quick Actions</Text>
                     <PrimaryButton

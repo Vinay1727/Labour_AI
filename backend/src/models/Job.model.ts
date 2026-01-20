@@ -2,8 +2,19 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IApplication {
     labourId: mongoose.Schema.Types.ObjectId;
+    appliedSkill: string;
     status: 'pending' | 'approved' | 'rejected';
     appliedAt: Date;
+}
+
+export interface ISkillRequirement {
+    skillType: string;
+    requiredCount: number;
+    filledCount: number;
+    payment: {
+        amount: number;
+        type: 'per_day' | 'fixed';
+    };
 }
 
 export interface IJob extends Document {
@@ -20,6 +31,7 @@ export interface IJob extends Document {
         address?: string;
     };
     status: 'open' | 'in_progress' | 'completed' | 'closed';
+    skills: ISkillRequirement[];
     applications: IApplication[];
     createdAt: Date;
     updatedAt: Date;
@@ -39,13 +51,29 @@ const JobSchema: Schema = new Schema({
         address: { type: String }
     },
     status: { type: String, enum: ['open', 'in_progress', 'completed', 'closed'], default: 'open' },
+    skills: [{
+        skillType: { type: String, required: true },
+        requiredCount: { type: Number, required: true },
+        filledCount: { type: Number, default: 0 },
+        payment: {
+            amount: { type: Number },
+            type: { type: String, enum: ['per_day', 'fixed'] }
+        }
+    }],
     applications: [{
         labourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        appliedSkill: { type: String, required: true },
         status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
         appliedAt: { type: Date, default: Date.now }
     }]
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+JobSchema.virtual('id').get(function (this: any) {
+    return this._id.toHexString();
 });
 
 JobSchema.index({ location: '2dsphere' });
