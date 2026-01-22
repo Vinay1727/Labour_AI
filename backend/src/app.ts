@@ -28,7 +28,7 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 // Database connection
-connectDB();
+// Database connection moved to server.ts
 
 // Routes
 app.get('/', (req, res) => {
