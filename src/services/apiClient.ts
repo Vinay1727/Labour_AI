@@ -2,7 +2,7 @@ import axios from 'axios';
 import { storage } from '../utils/storage';
 
 // Replace with your actual API base URL
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'https://labour-ai.onrender.com/api';
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,
