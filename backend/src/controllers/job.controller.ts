@@ -8,7 +8,25 @@ import { NotificationService } from '../services/notification.service';
 
 export const createJob = async (req: AuthRequest, res: Response) => {
     try {
-        const { workType, description, requiredWorkers, paymentAmount, paymentType, location } = req.body;
+        let {
+            workType,
+            description,
+            requiredWorkers,
+            paymentAmount,
+            paymentType,
+            location,
+            duration,
+            workSize,
+            skills
+        } = req.body;
+
+        // Handle stringified fields if they come from FormData
+        if (typeof location === 'string') location = JSON.parse(location);
+        if (typeof workSize === 'string') workSize = JSON.parse(workSize);
+        if (typeof skills === 'string') skills = JSON.parse(skills);
+
+        // Map uploaded files to paths
+        const images = (req.files as Express.Multer.File[])?.map(file => file.path.replace(/\\/g, '/'));
 
         const job = await Job.create({
             contractorId: req.user._id,
@@ -17,7 +35,11 @@ export const createJob = async (req: AuthRequest, res: Response) => {
             requiredWorkers,
             paymentAmount,
             paymentType,
-            location
+            location,
+            duration,
+            images,
+            workSize,
+            skills
         });
         success(res, job, 'Job created');
     } catch (e: any) {

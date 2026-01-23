@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, FlatList, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, FlatList, Modal, Image as RNImage } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
 import { Colors } from '../theme/colors';
@@ -85,7 +85,11 @@ export default function DetailsScreen({ route, navigation }: any) {
                             title: item.workType,
                             status: item.status,
                             location: item.location,
-                            duration: 'Flexible',
+                            duration: item.duration || 'Flexible',
+                            description: item.description,
+                            images: item.images || [],
+                            workSize: item.workSize,
+                            skills: item.skills || [],
                             payment: `₹${item.paymentAmount} (${item.paymentType})`,
                             labourRequired: item.requiredWorkers,
                             labourAccepted: item.filledWorkers,
@@ -443,7 +447,47 @@ export default function DetailsScreen({ route, navigation }: any) {
                         </View>
                     )}
 
-                    {!fromDeals && role === 'labour' && (
+                    {data.images && data.images.length > 0 && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Kaam ki Photos</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                {data.images.map((img: string, i: number) => (
+                                    <RNImage
+                                        key={i}
+                                        source={{ uri: img.startsWith('http') ? img : `https://labour-ai.onrender.com/${img}` }}
+                                        style={styles.jobImage}
+                                    />
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
+
+                    {data.description && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Zaroori Baatein (Requirement)</Text>
+                            <View style={styles.whiteCard}>
+                                <Text style={styles.descriptionText}>{data.description}</Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {data.workSize && (data.workSize.length || data.workSize.height) && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Kaam ka Size</Text>
+                            <View style={styles.whiteCard}>
+                                <View style={styles.row}>
+                                    <AppIcon name="resize-outline" size={20} color={Colors.primary} />
+                                    <Text style={styles.sizeText}>
+                                        {data.workSize.length ? `Lambai: ${data.workSize.length} ft` : ''}
+                                        {data.workSize.length && data.workSize.height ? '  |  ' : ''}
+                                        {data.workSize.height ? `Unchai: ${data.workSize.height} ft` : ''}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {role === 'labour' && !fromDeals && (
                         <TouchableOpacity
                             style={styles.mainApplyBtn}
                             onPress={() => handleApply()}
@@ -692,5 +736,23 @@ const styles = StyleSheet.create({
         color: Colors.white,
         fontWeight: 'bold',
         fontSize: 14,
+    },
+    jobImage: {
+        width: 200,
+        height: 150,
+        borderRadius: 12,
+        marginRight: 12,
+        backgroundColor: '#E2E8F0',
+    },
+    descriptionText: {
+        fontSize: 14,
+        color: Colors.textPrimary,
+        lineHeight: 20,
+    },
+    sizeText: {
+        fontSize: 14,
+        color: Colors.textPrimary,
+        fontWeight: '600',
+        marginLeft: 8,
     },
 });

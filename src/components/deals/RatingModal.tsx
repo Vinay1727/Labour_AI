@@ -15,15 +15,15 @@ interface RatingModalProps {
     role: 'contractor' | 'labour';
 }
 
-const FEEDBACK_OPTIONS = [
-    { id: 1, label: 'Punctual', icon: 'time-outline' },
-    { id: 2, label: 'Hard Working', icon: 'hammer-outline' },
-    { id: 3, label: 'Skillful', icon: 'construct-outline' },
-    { id: 4, label: 'Polite', icon: 'people-outline' },
-];
-
 export const RatingModal = ({ visible, onClose, onSubmit, userName, role }: RatingModalProps) => {
     const { t } = useTranslation();
+
+    const FEEDBACK_OPTIONS = [
+        { id: 1, label: t('punctual'), icon: 'time-outline' },
+        { id: 2, label: t('hard_working'), icon: 'hammer-outline' },
+        { id: 3, label: t('skillful'), icon: 'construct-outline' },
+        { id: 4, label: t('polite'), icon: 'people-outline' },
+    ];
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
