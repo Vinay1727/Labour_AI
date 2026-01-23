@@ -160,40 +160,62 @@ export default function PostNewWorkScreen({ navigation }: any) {
     const handlePostWork = async () => {
         setIsLoading(true);
 
-        const currentDuration = durations.find(d => d.label === durationLabel);
+        try {
+            const formData = new FormData();
 
-        const payload = {
-            workType: selectedSkills[0].id, // Primary type for now
-            requiredWorkers: selectedSkills.reduce((acc, curr) => acc + curr.count, 0),
-            paymentAmount: selectedSkills[0].payment.amount || 0,
-            paymentType: selectedSkills[0].payment.type,
+            // Basic fields
+            formData.append('workType', selectedSkills[0].id);
+            formData.append('requiredWorkers', selectedSkills.reduce((acc, curr) => acc + curr.count, 0).toString());
+            formData.append('paymentAmount', (selectedSkills[0].payment.amount || '0').toString());
+            formData.append('paymentType', selectedSkills[0].payment.type);
+            formData.append('duration', durationLabel === t('custom_days') ? `${customDays} Days` : durationLabel);
+            formData.append('description', additionalRequirements);
+            formData.append('status', 'open');
 
-            // Rich payload for full details
-            skills: selectedSkills.map(s => ({
+            // Complex objects need stringifying for FormData
+            formData.append('skills', JSON.stringify(selectedSkills.map(s => ({
                 skillType: s.id,
                 requiredCount: s.count,
                 payment: {
                     amount: parseFloat(s.payment.amount) || null,
                     type: s.payment.type || null
                 }
-            })),
-            workSize: showSizeFields ? {
-                length: parseFloat(workSize.length) || null,
-                height: parseFloat(workSize.height) || null
-            } : null,
-            images,
-            description: additionalRequirements,
-            location: location ? {
-                type: 'Point',
-                coordinates: [location.longitude, location.latitude],
-                address: location.address
-            } : undefined,
-            status: 'open'
-        };
+            }))));
 
-        try {
-            console.log('Sending Post Work Payload:', payload);
-            const response = await api.post('jobs', payload);
+            if (showSizeFields) {
+                formData.append('workSize', JSON.stringify({
+                    length: parseFloat(workSize.length) || null,
+                    height: parseFloat(workSize.height) || null
+                }));
+            }
+
+            if (location) {
+                formData.append('location', JSON.stringify({
+                    type: 'Point',
+                    coordinates: [location.longitude, location.latitude],
+                    address: location.address
+                }));
+            }
+
+            // Append images
+            images.forEach((uri, index) => {
+                const filename = uri.split('/').pop();
+                const match = /\.(\w+)$/.exec(filename || '');
+                const type = match ? `image/${match[1]}` : `image`;
+
+                formData.append('images', {
+                    uri,
+                    name: filename || `image_${index}.jpg`,
+                    type,
+                } as any);
+            });
+
+            console.log('Sending Post Work FormData');
+            const response = await api.post('jobs', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             console.log('Post Work Response:', response.data);
             Alert.alert('Success', 'Work posted successfully!');
             navigation.goBack();

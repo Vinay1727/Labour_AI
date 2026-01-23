@@ -208,5 +208,10 @@
     "no_deals_sub": "Jaise hi kaam aayega, yahin dikhega",
     "no_messages_hinglish": "Abhi koi message nahi hai",
     "no_messages_sub": "Jab baat hogi tab dikhega",
-    "attendance_marked": "Attendance Marked"
+    "comment_placeholder": "Tell us about your experience...",
+    "attendance_marked": "Attendance Marked",
+    "punctual": "Punctual",
+    "hard_working": "Hard Working",
+    "skillful": "Skillful",
+    "polite": "Polite"
 }

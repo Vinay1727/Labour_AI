@@ -30,6 +30,12 @@ export interface IJob extends Document {
         coordinates: number[];
         address?: string;
     };
+    duration?: string;
+    images?: string[];
+    workSize?: {
+        length: number;
+        height: number;
+    };
     status: 'open' | 'in_progress' | 'completed' | 'closed';
     skills: ISkillRequirement[];
     applications: IApplication[];
@@ -49,6 +55,12 @@ const JobSchema: Schema = new Schema({
         type: { type: String, enum: ['Point'], default: 'Point' },
         coordinates: { type: [Number], default: [0, 0] },
         address: { type: String }
+    },
+    duration: { type: String },
+    images: { type: [String], default: [] },
+    workSize: {
+        length: { type: Number },
+        height: { type: Number }
     },
     status: { type: String, enum: ['open', 'in_progress', 'completed', 'closed'], default: 'open' },
     skills: [{
