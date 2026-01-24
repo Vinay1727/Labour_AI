@@ -165,7 +165,7 @@ export const getSkillInsights = async (req: AuthRequest, res: Response) => {
         // Fallback: If no insights near the user, show global skill insights
         if (results.length === 0 && hasLocation) {
             console.log('[Insights] No local data, showing global skill stats');
-            const globalPipeline = [
+            const globalPipeline: any[] = [
                 { $match: { role: 'labour' } },
                 { $unwind: '$skills' },
                 { $group: { _id: '$skills', count: { $sum: 1 } } },
