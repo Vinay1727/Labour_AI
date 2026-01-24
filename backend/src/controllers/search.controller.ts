@@ -122,6 +122,25 @@ export const unifiedSearch = async (req: AuthRequest, res: Response) => {
             ? await Job.aggregate(pipeline)
             : await User.aggregate(pipeline);
 
+        // FALLBACK: If nothing found within the distance, show global results to avoid empty screen
+        if (results.length === 0 && !q && !skill) {
+            if (role === 'labour') {
+                const globalJobs = await Job.find({ status: 'open' })
+                    .populate('contractorId', 'name phone averageRating')
+                    .sort({ createdAt: -1 })
+                    .limit(20)
+                    .lean();
+                return success(res, { type: 'jobs', results: globalJobs });
+            } else {
+                const globalLabours = await User.find({ role: 'labour' })
+                    .select('name phone averageRating reviewCount skills location rank')
+                    .sort({ averageRating: -1 })
+                    .limit(20)
+                    .lean();
+                return success(res, { type: 'labours', results: globalLabours });
+            }
+        }
+
         return success(res, { type: role === 'labour' ? 'jobs' : 'labours', results });
     } catch (e: any) {
         console.error('Search Critical Error:', e);
