@@ -274,7 +274,7 @@ const FilterChip = ({ label, active, onPress, icon }: any) => (
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     header: { backgroundColor: Colors.white, paddingBottom: spacing.md, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, elevation: 10 },
-    searchBarContainer: { paddingHorizontal: spacing.l, paddingTop: spacing.md, marginBottom: spacing.md },
+    searchBarContainer: { paddingHorizontal: spacing.l, paddingTop: spacing.md, marginBottom: spacing.xs },
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 20, paddingHorizontal: 16, height: 56 },
     searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: Colors.textPrimary, fontWeight: '500' },
     filterScroll: { paddingHorizontal: spacing.l, gap: 10 },

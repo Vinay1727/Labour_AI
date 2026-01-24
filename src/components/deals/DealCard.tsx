@@ -73,7 +73,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
             <View style={styles.infoRow}>
                 <AppIcon name="location-outline" size={16} color={Colors.textSecondary} />
                 <Text style={styles.infoText}>
-                    {`${deal.location.area}, ${deal.location.city}`}
+                    {`${deal.location?.area || t('local' as any)}, ${deal.location?.city || t('nearby' as any)}`}
                 </Text>
             </View>
 
@@ -141,16 +141,16 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
 
                             <View style={styles.decisionActions}>
                                 <TouchableOpacity
-                                    style={[styles.roundActionBtn, { backgroundColor: Colors.success }]}
+                                    style={[styles.miniRoundBtn, { backgroundColor: Colors.success }]}
                                     onPress={() => onUpdateStatus('approve_with_skill' as any)}
                                 >
-                                    <AppIcon name="checkmark" size={20} color={Colors.white} />
+                                    <AppIcon name="checkmark" size={18} color={Colors.white} />
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={[styles.roundActionBtn, { backgroundColor: Colors.error }]}
+                                    style={[styles.miniRoundBtn, { backgroundColor: Colors.error }]}
                                     onPress={() => onUpdateStatus('rejected')}
                                 >
-                                    <AppIcon name="close" size={20} color={Colors.white} />
+                                    <AppIcon name="close" size={18} color={Colors.white} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -159,29 +159,30 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                     {/* 2. IN PROGRESS PHASE (Labour Actions) */}
                     {!isContractor && deal.status === 'active' && (
                         <TouchableOpacity
-                            style={[styles.roundActionBtn, { backgroundColor: Colors.secondary }]}
+                            style={[styles.actionButton, { backgroundColor: Colors.secondary }]}
                             onPress={() => onUpdateStatus('completion_requested')}
                         >
-                            <AppIcon name="flag" size={20} color={Colors.white} />
+                            <AppIcon name="flag" size={18} color={Colors.white} />
+                            <Text style={styles.actionButtonText}>Finish</Text>
                         </TouchableOpacity>
                     )}
 
                     {/* 3. COMPLETION APPROVAL PHASE (Contractor Actions) */}
                     {isContractor && deal.status === 'completion_requested' && (
-                        <>
+                        <View style={styles.decisionActions}>
                             <TouchableOpacity
-                                style={[styles.roundActionBtn, { backgroundColor: Colors.success }]}
+                                style={[styles.miniRoundBtn, { backgroundColor: Colors.success }]}
                                 onPress={() => onUpdateStatus('completed')}
                             >
-                                <AppIcon name="checkmark-done" size={20} color={Colors.white} />
+                                <AppIcon name="checkmark-done" size={18} color={Colors.white} />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.roundActionBtn, { backgroundColor: Colors.error }]}
+                                style={[styles.miniRoundBtn, { backgroundColor: Colors.error }]}
                                 onPress={() => onUpdateStatus('rejected_completion' as any)}
                             >
-                                <AppIcon name="close" size={20} color={Colors.white} />
+                                <AppIcon name="close" size={18} color={Colors.white} />
                             </TouchableOpacity>
-                        </>
+                        </View>
                     )}
 
                     {!isContractor && deal.status === 'completion_requested' && (
@@ -193,60 +194,61 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
 
                     {!isContractor && deal.completionStatus === 'rejected' && deal.status === 'active' && (
                         <TouchableOpacity
-                            style={[styles.roundActionBtn, { backgroundColor: Colors.primary }]}
+                            style={[styles.actionButton, { backgroundColor: Colors.primary }]}
                             onPress={() => onUpdateStatus('completion_requested')}
                         >
-                            <AppIcon name="hammer-outline" size={20} color={Colors.white} />
+                            <AppIcon name="hammer-outline" size={18} color={Colors.white} />
+                            <Text style={styles.actionButtonText}>Resubmit</Text>
                         </TouchableOpacity>
                     )}
 
-                    {/* APPROVED & ACTIVE PHASE ACTIONS */}
+                    {/* COMMUNICATION & MGMT ACTIONS */}
                     {(['assigned', 'active', 'completion_requested', 'finished', 'completed'].includes(deal.status)) && (
-                        <>
-                            {/* Chat Button */}
+                        <View style={styles.commActions}>
+                            {/* Chat */}
                             <TouchableOpacity
-                                style={styles.roundActionBtn}
+                                style={styles.iconActionBtn}
                                 onPress={() => navigation.navigate('Chat', {
                                     dealId: deal.id,
                                     name: isContractor ? deal.userName : deal.contractorName,
                                     workType: deal.workType
                                 })}
                             >
-                                <AppIcon name="chatbubble-ellipses-outline" size={20} color={Colors.white} />
+                                <AppIcon name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
                             </TouchableOpacity>
 
-                            {/* Call Button (Contractor ONLY) */}
+                            {/* Call (Contractor ONLY) */}
                             {isContractor && (
                                 <TouchableOpacity
-                                    style={[styles.roundActionBtn, { backgroundColor: Colors.info }]}
+                                    style={styles.iconActionBtn}
                                     onPress={() => {
                                         Alert.alert('Calling...', `Connecting you to ${deal.userName}`);
                                     }}
                                 >
-                                    <AppIcon name="call-outline" size={20} color={Colors.white} />
+                                    <AppIcon name="call-outline" size={18} color={Colors.info} />
                                 </TouchableOpacity>
                             )}
 
                             {/* Attendance (Labour ONLY) */}
                             {!isContractor && (
                                 <TouchableOpacity
-                                    style={[styles.roundActionBtn, { backgroundColor: '#8B5CF6' }]}
+                                    style={styles.iconActionBtn}
                                     onPress={() => navigation.navigate('Attendance', { dealId: deal.id })}
                                 >
-                                    <AppIcon name="calendar-outline" size={20} color={Colors.white} />
+                                    <AppIcon name="calendar-outline" size={18} color="#8B5CF6" />
                                 </TouchableOpacity>
                             )}
 
-                            {/* Cancel Button */}
+                            {/* Cancel */}
                             {['assigned', 'active', 'completion_requested', 'applied'].includes(deal.status) && (
                                 <TouchableOpacity
-                                    style={[styles.roundActionBtn, { backgroundColor: Colors.error }]}
+                                    style={styles.iconActionBtn}
                                     onPress={() => onUpdateStatus('cancelled' as any)}
                                 >
-                                    <AppIcon name="close-circle-outline" size={20} color={Colors.white} />
+                                    <AppIcon name="close-circle-outline" size={18} color={Colors.error} />
                                 </TouchableOpacity>
                             )}
-                        </>
+                        </View>
                     )}
 
                     {/* 4. COMPLETED / FINISHED PHASE (Rating) */}
@@ -258,16 +260,17 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                             </View>
                         ) : (
                             <TouchableOpacity
-                                style={[styles.roundActionBtn, { backgroundColor: Colors.warning }]}
+                                style={[styles.actionButton, { backgroundColor: Colors.warning }]}
                                 onPress={onRatePress}
                             >
-                                <AppIcon name="star" size={20} color={Colors.white} />
+                                <AppIcon name="star" size={18} color={Colors.white} />
+                                <Text style={styles.actionButtonText}>Rate</Text>
                             </TouchableOpacity>
                         )
                     )}
                 </View>
             </View>
-        </View >
+        </View>
     );
 };
 
@@ -337,9 +340,9 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
@@ -382,11 +385,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginTop: spacing.xs,
+        flexWrap: 'wrap',
+        gap: 8,
     },
     detailsBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: Colors.border,
         backgroundColor: Colors.white,
@@ -394,23 +399,50 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     rightActions: {
+        flex: 1,
         flexDirection: 'row',
-        gap: 10,
         justifyContent: 'flex-end',
         alignItems: 'center',
+        gap: 8,
     },
-    roundActionBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.primary,
+    commActions: {
+        flexDirection: 'row',
+        gap: 6,
+        alignItems: 'center',
+    },
+    iconActionBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#F1F5F9',
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 3,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        gap: 6,
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
-        shadowRadius: 2,
+        shadowRadius: 1,
+    },
+    actionButtonText: {
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    miniRoundBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 2,
     },
     pendingBadge: {
         flexDirection: 'row',
@@ -494,31 +526,31 @@ const styles = StyleSheet.create({
     appliedActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: 8,
         flex: 1,
-        gap: 12,
-        flexShrink: 1,
+        justifyContent: 'flex-end',
     },
     decisionActions: {
         flexDirection: 'row',
-        gap: 10,
-        flexShrink: 0,
+        gap: 8,
+        alignItems: 'center',
     },
     viewProfileBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#EFF6FF',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: '#DBEAFE',
-        gap: 6,
-        flexShrink: 1,
+        gap: 4,
+        maxWidth: 100,
     },
     viewProfileText: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: 'bold',
         color: Colors.primary,
     },
 });
+

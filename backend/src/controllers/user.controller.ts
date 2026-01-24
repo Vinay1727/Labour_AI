@@ -128,15 +128,23 @@ export const getSkillInsights = async (req: AuthRequest, res: Response) => {
         const { lat, lng, distance = 10 } = req.query;
         const pipeline: any[] = [];
 
-        if (lat && lng) {
+        const parsedLat = (lat !== undefined && lat !== null) ? parseFloat(lat as string) : NaN;
+        const parsedLng = (lng !== undefined && lng !== null) ? parseFloat(lng as string) : NaN;
+        const parsedDist = parseInt(distance as string) || 10;
+
+        const hasLocation = !isNaN(parsedLat) && !isNaN(parsedLng) &&
+            parsedLat >= -90 && parsedLat <= 90 &&
+            parsedLng >= -180 && parsedLng <= 180;
+
+        if (hasLocation) {
             pipeline.push({
                 $geoNear: {
                     near: {
                         type: 'Point',
-                        coordinates: [parseFloat(lng as string), parseFloat(lat as string)]
+                        coordinates: [parsedLng, parsedLat]
                     },
                     distanceField: 'dist.calculated',
-                    maxDistance: parseInt(distance as string) * 1000,
+                    maxDistance: (parsedDist || 10) * 1000,
                     query: { role: 'labour' },
                     spherical: true
                 }
@@ -151,6 +159,7 @@ export const getSkillInsights = async (req: AuthRequest, res: Response) => {
             { $sort: { count: -1 } }
         );
 
+        console.log('Skill Insights Pipeline:', JSON.stringify(pipeline, null, 2));
         const results = await User.aggregate(pipeline);
         success(res, results);
     } catch (e: any) {
