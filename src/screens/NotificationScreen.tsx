@@ -22,7 +22,7 @@ interface Notification {
     _id: string;
     title: string;
     message: string;
-    type: 'approval' | 'rejection' | 'application' | 'attendance' | 'completion' | 'message' | 'rating' | 'update';
+    type: 'approval' | 'rejection' | 'application' | 'attendance' | 'completion' | 'message' | 'rating' | 'update' | 'cancellation' | 'info';
     relatedId: string;
     route: string;
     isRead: boolean;
@@ -37,6 +37,8 @@ const getIcon = (type: string) => {
         case 'attendance': return { name: 'location', color: Colors.info };
         case 'application': return { name: 'hammer', color: Colors.warning };
         case 'completion': return { name: 'star', color: '#F59E0B' };
+        case 'cancellation': return { name: 'close-circle', color: Colors.error };
+        case 'info': return { name: 'information-circle', color: Colors.info };
         default: return { name: 'notifications', color: Colors.textSecondary };
     }
 };
