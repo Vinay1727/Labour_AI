@@ -28,18 +28,23 @@ export const unifiedSearch = async (req: AuthRequest, res: Response) => {
         if (q && typeof q === 'string' && q.trim()) {
             const escapedQ = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const searchRegex = new RegExp(escapedQ, 'i');
-            matchCriteria.$or = [
-                { workType: searchRegex },
-                { description: searchRegex },
-                { name: searchRegex },
-                { skills: searchRegex }
-            ];
+
+            if (role === 'labour') {
+                matchCriteria.$or = [
+                    { workType: searchRegex },
+                    { description: searchRegex }
+                ];
+            } else {
+                matchCriteria.$or = [
+                    { name: searchRegex },
+                    { skills: searchRegex }
+                ];
+            }
         }
 
         const pipeline: any[] = [];
 
         if (role === 'labour') {
-            // Labours search for Jobs
             matchCriteria.status = 'open';
             matchCriteria['applications.labourId'] = { $ne: userId };
             if (skill) matchCriteria.workType = skill;
@@ -50,11 +55,12 @@ export const unifiedSearch = async (req: AuthRequest, res: Response) => {
                     $geoNear: {
                         near: { type: 'Point', coordinates: [parsedLng, parsedLat] },
                         distanceField: 'distance',
-                        query: matchCriteria,
+                        query: matchCriteria, // Apply non-geo filters here
                         spherical: true,
                         maxDistance: parsedDist * 1000
                     }
                 });
+                pipeline.push({ $sort: { distance: 1, createdAt: -1 } }); // Sort by distance then creation date
             } else {
                 pipeline.push({ $match: matchCriteria });
                 pipeline.push({ $sort: { createdAt: -1 } });
@@ -83,7 +89,6 @@ export const unifiedSearch = async (req: AuthRequest, res: Response) => {
                 }
             });
         } else {
-            // Contractors search for Labours
             matchCriteria.role = 'labour';
             if (skill) matchCriteria.skills = skill;
             if (rating) matchCriteria.averageRating = { $gte: parseFloat(rating as string) || 0 };
@@ -93,11 +98,12 @@ export const unifiedSearch = async (req: AuthRequest, res: Response) => {
                     $geoNear: {
                         near: { type: 'Point', coordinates: [parsedLng, parsedLat] },
                         distanceField: 'distance',
-                        query: matchCriteria,
+                        query: matchCriteria, // Apply non-geo filters here
                         spherical: true,
                         maxDistance: parsedDist * 1000
                     }
                 });
+                pipeline.push({ $sort: { distance: 1, averageRating: -1 } }); // Sort by distance then rating
             } else {
                 pipeline.push({ $match: matchCriteria });
                 pipeline.push({ $sort: { averageRating: -1 } });
@@ -118,8 +124,8 @@ export const unifiedSearch = async (req: AuthRequest, res: Response) => {
 
         return success(res, { type: role === 'labour' ? 'jobs' : 'labours', results });
     } catch (e: any) {
-        console.error('Search Pipeline Error:', e);
-        // Fallback to simple find to prevent 500 error showing on screen
+        console.error('Search Critical Error:', e);
+        // Clean fallback to ensure frontend is never empty
         const fallbackRole = req.user?.role || 'labour';
         const results = fallbackRole === 'labour'
             ? await Job.find({ status: 'open' }).limit(10).populate('contractorId', 'name phone averageRating').lean()
