@@ -48,6 +48,8 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                 return { label: t('fully_completed'), color: Colors.success, bg: '#DCFCE7', icon: 'star' };
             case 'rejected':
                 return { label: t('rejected'), color: Colors.error, bg: '#FEF2F2', icon: 'close-circle-outline' };
+            case 'cancelled':
+                return { label: t('cancelled' as any), color: Colors.error, bg: '#FEF2F2', icon: 'trash-outline' };
             default:
                 return { label: deal.status, color: Colors.textSecondary, bg: Colors.textInput, icon: 'help-circle-outline' };
         }
@@ -59,7 +61,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
         <View style={styles.card}>
             <View style={styles.header}>
                 <View style={styles.workTypeContainer}>
-                    <Text style={styles.workTitle}>{deal.appliedSkill || deal.workType}</Text>
+                    <Text style={styles.workTitle} numberOfLines={1}>{deal.appliedSkill || deal.workType}</Text>
                     <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
                         <AppIcon name={statusInfo.icon as any} size={14} color={statusInfo.color} />
                         <Text style={[styles.badgeText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
@@ -82,7 +84,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                 <View style={styles.userDetails}>
                     <Text style={styles.userLabel}>{isContractor ? t('worker') : t('contractor')}</Text>
                     <View style={styles.nameRow}>
-                        <Text style={styles.userName}>{deal.userName || deal.contractorName}</Text>
+                        <Text style={styles.userName} numberOfLines={1}>{deal.userName || deal.contractorName}</Text>
                         {isContractor && (deal.labourId as any)?.averageRating && (
                             <View style={styles.miniRatingBadge}>
                                 <AppIcon name="star" size={10} color="#F59E0B" />
@@ -134,7 +136,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                                 onPress={onViewProfile}
                             >
                                 <AppIcon name="person-outline" size={16} color={Colors.primary} />
-                                <Text style={styles.viewProfileText}>{t('view_profile' as any)}</Text>
+                                <Text style={styles.viewProfileText} numberOfLines={1}>{t('view_profile' as any)}</Text>
                             </TouchableOpacity>
 
                             <View style={styles.decisionActions}>
@@ -232,6 +234,16 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                                     onPress={() => navigation.navigate('Attendance', { dealId: deal.id })}
                                 >
                                     <AppIcon name="calendar-outline" size={20} color={Colors.white} />
+                                </TouchableOpacity>
+                            )}
+
+                            {/* Cancel Button */}
+                            {['assigned', 'active', 'completion_requested', 'applied'].includes(deal.status) && (
+                                <TouchableOpacity
+                                    style={[styles.roundActionBtn, { backgroundColor: Colors.error }]}
+                                    onPress={() => onUpdateStatus('cancelled' as any)}
+                                >
+                                    <AppIcon name="close-circle-outline" size={20} color={Colors.white} />
                                 </TouchableOpacity>
                             )}
                         </>
@@ -351,6 +363,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: typography.weight.semiBold,
         color: Colors.textPrimary,
+        flex: 1,
     },
     paymentContainer: {
         alignItems: 'flex-end',
@@ -484,10 +497,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         flex: 1,
         gap: 12,
+        flexShrink: 1,
     },
     decisionActions: {
         flexDirection: 'row',
         gap: 10,
+        flexShrink: 0,
     },
     viewProfileBtn: {
         flexDirection: 'row',
@@ -499,6 +514,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#DBEAFE',
         gap: 6,
+        flexShrink: 1,
     },
     viewProfileText: {
         fontSize: 13,

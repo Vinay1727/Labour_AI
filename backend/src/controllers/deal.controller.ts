@@ -388,3 +388,98 @@ export const getDeal = async (req: AuthRequest, res: Response) => {
         success(res, deal);
     } catch (e: any) { error(res, e.message); }
 };
+
+export const cancelDeal = async (req: AuthRequest, res: Response) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { dealId } = req.params;
+        const { reason } = req.body;
+        const deal = await Deal.findById(dealId).session(session);
+
+        if (!deal) {
+            await session.abortTransaction();
+            return error(res, 'Deal not found', 404);
+        }
+
+        const isContractor = deal.contractorId.toString() === req.user._id.toString();
+        const isLabour = deal.labourId.toString() === req.user._id.toString();
+
+        if (!isContractor && !isLabour) {
+            await session.abortTransaction();
+            return error(res, 'Unauthorized', 401);
+        }
+
+        if (['finished', 'completed', 'cancelled', 'rejected'].includes(deal.status)) {
+            await session.abortTransaction();
+            return error(res, `Cannot cancel deal with status ${deal.status}`, 400);
+        }
+
+        const oldStatus = deal.status;
+        deal.status = 'cancelled';
+        await deal.save({ session });
+
+        // If the deal was active or completion_requested, we need to free up the slot in the Job
+        if (oldStatus === 'active' || oldStatus === 'completion_requested') {
+            const job = await Job.findById(deal.jobId).session(session);
+            if (job) {
+                // Update skill slot if appliedSkill exists
+                if (deal.appliedSkill) {
+                    const skillReq = job.skills.find(s => s.skillType === deal.appliedSkill);
+                    if (skillReq && skillReq.filledCount > 0) {
+                        skillReq.filledCount -= 1;
+                    }
+                }
+
+                // Update total filled workers
+                if (job.filledWorkers > 0) {
+                    job.filledWorkers -= 1;
+                }
+
+                // If job was in_progress and now has empty slots, move back to open
+                if (job.status === 'in_progress' && job.filledWorkers < job.requiredWorkers) {
+                    job.status = 'open';
+                }
+
+                // Also update the application status in the job model
+                const application = job.applications.find(
+                    app => app.labourId.toString() === deal.labourId.toString() && app.status === 'approved'
+                );
+                if (application) {
+                    application.status = 'pending'; // Reset or should it be 'rejected'? Let's say cancelled removes it?
+                    // Actually, let's just mark it as rejected in the applications list or remove it
+                    application.status = 'rejected';
+                }
+
+                await job.save({ session });
+            }
+        }
+
+        // Send Notifications
+        const otherUserId = isContractor ? deal.labourId : deal.contractorId;
+        const userType = isContractor ? 'Contractor' : 'Labour';
+
+        await NotificationService.createNotification({
+            userId: otherUserId.toString(),
+            title: 'Job Cancelled ❌',
+            message: `${userType} ne job cancel kar di hai. Reason: ${reason || 'Not specified'}`,
+            type: 'cancellation',
+            relatedId: deal._id.toString(),
+            route: 'Deals'
+        });
+
+        // Penalize rank for cancellation if it was already active
+        if (oldStatus === 'active' || oldStatus === 'completion_requested') {
+            await calculateLabourRank(deal.labourId as any);
+        }
+
+        await session.commitTransaction();
+        success(res, deal, 'Deal cancelled successfully');
+    } catch (e: any) {
+        await session.abortTransaction();
+        console.error('Cancel Deal Error:', e);
+        error(res, e.message);
+    } finally {
+        session.endSession();
+    }
+};

@@ -92,15 +92,27 @@ export const searchLabours = async (req: AuthRequest, res: Response) => {
         }
 
         if (lat && lng) {
-            filter.location = {
-                $near: {
-                    $geometry: {
-                        type: 'Point',
-                        coordinates: [parseFloat(lng as string), parseFloat(lat as string)]
-                    },
-                    $maxDistance: parseInt(distance as string) * 1000
-                }
-            };
+            const results = await User.aggregate([
+                {
+                    $geoNear: {
+                        near: {
+                            type: 'Point',
+                            coordinates: [parseFloat(lng as string), parseFloat(lat as string)]
+                        },
+                        distanceField: 'distance',
+                        maxDistance: parseInt(distance as string) * 1000,
+                        query: filter,
+                        spherical: true
+                    }
+                },
+                {
+                    $project: {
+                        name: 1, phone: 1, averageRating: 1, reviewCount: 1, skills: 1, location: 1, rank: 1, distance: 1
+                    }
+                },
+                { $limit: 50 }
+            ]);
+            return success(res, results);
         }
 
         const labours = await User.find(filter)

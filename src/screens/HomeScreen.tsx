@@ -9,6 +9,7 @@ import { typography } from '../theme/typography';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useTranslation } from '../context/LanguageContext';
 import api from '../services/api';
+import { DeleteReasonModal } from '../components/common/DeleteReasonModal';
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +19,9 @@ export default function HomeScreen() {
     const { t } = useTranslation();
     const [availableJobs, setAvailableJobs] = React.useState<any[]>([]);
     const [unreadCount, setUnreadCount] = React.useState(0);
+    const [isDeleting, setIsDeleting] = React.useState(false);
+    const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+    const [selectedJobId, setSelectedJobId] = React.useState<string | null>(null);
 
     const isFocused = useIsFocused();
 
@@ -60,6 +64,28 @@ export default function HomeScreen() {
         } catch (err: any) {
             Alert.alert('Error', err.response?.data?.message || 'Failed to apply');
         }
+    };
+
+    const handleDeleteJob = async (reason: string) => {
+        if (!selectedJobId) return;
+        try {
+            setIsDeleting(true);
+            const res = await api.delete(`jobs/${selectedJobId}`, { data: { reason } });
+            if (res.data.success) {
+                Alert.alert('Success', 'Job deleted successfully');
+                setShowDeleteModal(false);
+                fetchJobs();
+            }
+        } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || 'Failed to delete');
+        } finally {
+            setIsDeleting(false);
+            setSelectedJobId(null);
+        }
+    };
+
+    const handleEditJob = (job: any) => {
+        navigation.navigate('PostNewWork', { jobData: job });
     };
 
     const renderContractorView = () => (
@@ -116,14 +142,48 @@ export default function HomeScreen() {
                                 <Text style={styles.locationText}>{item.location?.address || 'Location'}</Text>
                             </View>
                             <View style={styles.badgeRow}>
-                                <View style={styles.miniIconBadge}>
-                                    <AppIcon name="people-outline" size={12} color={Colors.primary} />
-                                    <Text style={styles.miniBadgeText}>{item.filledWorkers}/{item.requiredWorkers}</Text>
+                                <View style={[styles.miniIconBadge, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0', borderWidth: 0.5 }]}>
+                                    <AppIcon name="people-outline" size={12} color="#16A34A" />
+                                    <Text style={[styles.miniBadgeText, { color: '#16A34A' }]}>{item.filledWorkers}/{item.requiredWorkers}</Text>
+                                </View>
+                                <View style={[
+                                    styles.miniIconBadge,
+                                    {
+                                        backgroundColor: (item.applications?.length || 0) > 0 ? '#FEF3C7' : '#F1F5F9',
+                                        borderColor: (item.applications?.length || 0) > 0 ? '#FDE68A' : '#E2E8F0',
+                                        borderWidth: 0.5
+                                    }
+                                ]}>
+                                    <AppIcon
+                                        name={(item.applications?.length || 0) > 0 ? "hand-right" : "hand-right-outline"}
+                                        size={12}
+                                        color={(item.applications?.length || 0) > 0 ? "#D97706" : "#64748B"}
+                                    />
+                                    <Text style={[
+                                        styles.miniBadgeText,
+                                        { color: (item.applications?.length || 0) > 0 ? "#D97706" : "#64748B" }
+                                    ]}>
+                                        {item.applications?.length || 0} Applied
+                                    </Text>
                                 </View>
                             </View>
                         </View>
-                        <View style={[styles.roundActionBtnSmall, { backgroundColor: Colors.primaryLight }]}>
-                            <AppIcon name="chevron-forward" size={20} color={Colors.primary} />
+                        <View style={styles.actionColumn}>
+                            <TouchableOpacity
+                                style={styles.iconActionBtn}
+                                onPress={() => handleEditJob(item)}
+                            >
+                                <AppIcon name="create-outline" size={20} color={Colors.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.iconActionBtn, { marginTop: 12 }]}
+                                onPress={() => {
+                                    setSelectedJobId(item._id);
+                                    setShowDeleteModal(true);
+                                }}
+                            >
+                                <AppIcon name="trash-outline" size={20} color={Colors.error} />
+                            </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
                 ))}
@@ -139,6 +199,12 @@ export default function HomeScreen() {
                 <AppIcon name="information-circle-outline" size={20} color={Colors.primary} />
                 <Text style={styles.tipText}>Only nearby labour will see your request</Text>
             </View>
+
+            <DeleteReasonModal
+                visible={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onSubmit={handleDeleteJob}
+            />
         </ScrollView>
     );
 
@@ -207,7 +273,7 @@ export default function HomeScreen() {
                                             color={myApplication.status === 'approved' ? '#059669' : '#B45309'}
                                         />
                                         <Text style={[styles.statusInfoText, { color: myApplication.status === 'approved' ? '#059669' : '#B45309' }]}>
-                                            {myApplication.status === 'approved' ? 'Mili hai' : 'Sawaal hai'}
+                                            {myApplication.status === 'approved' ? 'Mili hai' : 'Apply kar diya he'}
                                         </Text>
                                     </View>
                                 ) : (
@@ -606,12 +672,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.textPrimary,
     },
-    roundActionBtnSmall: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+    actionColumn: {
         justifyContent: 'center',
         alignItems: 'center',
+        paddingLeft: 12,
+        borderLeftWidth: 1,
+        borderLeftColor: '#F1F5F9',
+    },
+    iconActionBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
     },
     badge: {
         position: 'absolute',

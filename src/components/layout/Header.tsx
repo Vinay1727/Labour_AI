@@ -5,9 +5,10 @@ interface HeaderProps {
     title: string;
     onBack?: () => void;
     rightAction?: React.ReactNode;
+    titleStyle?: any;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, onBack, rightAction }) => {
+export const Header: React.FC<HeaderProps> = ({ title, onBack, rightAction, titleStyle }) => {
     return (
         <View style={styles.container}>
             <View style={styles.leftContainer}>
@@ -18,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onBack, rightAction }) =>
                 )}
             </View>
 
-            <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{title}</Text>
+            <Text style={[styles.title, titleStyle]} numberOfLines={1} ellipsizeMode="tail">{title}</Text>
 
             <View style={styles.rightContainer}>
                 {rightAction}

@@ -16,11 +16,15 @@ import JobApplicationsScreen from '../screens/JobApplicationsScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import LabourProfileScreen from '../screens/LabourProfileScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import HelpScreen from '../screens/HelpScreen';
+import { useNotifications } from '../hooks/useNotifications';
 
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
   const { role } = useAuth();
+  useNotifications();
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -40,6 +44,8 @@ export default function RootNavigator() {
           <Stack.Screen name="Notification" component={NotificationScreen} />
           <Stack.Screen name="Messages" component={MessagesScreen} />
           <Stack.Screen name="LabourProfile" component={LabourProfileScreen} />
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+          <Stack.Screen name="Help" component={HelpScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />

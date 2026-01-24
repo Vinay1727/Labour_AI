@@ -181,6 +181,22 @@ export default function ProfileScreen() {
                         onPress={() => navigation.navigate('EditProfile')}
                     />
                     <ActionItem
+                        label={t('help_support')}
+                        icon="help-circle-outline"
+                        color={Colors.info}
+                        bgColor="#F0F9FF"
+                        onPress={() => navigation.navigate('Help')}
+                    />
+                </View>
+                <View style={styles.gridContainer}>
+                    <ActionItem
+                        label={t('privacy_policy')}
+                        icon="shield-outline"
+                        color="#64748B"
+                        bgColor="#F8FAFC"
+                        onPress={() => navigation.navigate('PrivacyPolicy')}
+                    />
+                    <ActionItem
                         label={t('logout')}
                         icon="log-out-outline"
                         color={Colors.error}

@@ -58,6 +58,14 @@ export const LabourCard = ({ labour, onContact, onViewProfile }: LabourCardProps
                             <AppIcon name="location-outline" size={14} color={Colors.textSecondary} />
                             <Text style={styles.metaText}>{labour.location.area || 'Nearby'}</Text>
                         </View>
+                        {(labour as any).distance !== undefined && (
+                            <View style={[styles.metaItem, styles.distanceBadge]}>
+                                <AppIcon name="navigate-outline" size={12} color={Colors.primary} />
+                                <Text style={[styles.metaText, { color: Colors.primary, fontWeight: '700' }]}>
+                                    {((labour as any).distance / 1000).toFixed(1)} km away
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
             </View>
@@ -168,6 +176,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.textSecondary,
         fontWeight: '500',
+    },
+    distanceBadge: {
+        backgroundColor: Colors.primaryLight,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
     },
     footer: {
         flexDirection: 'row',
