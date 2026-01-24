@@ -1,4 +1,4 @@
-import Notification from '../models/Notification.model';
+import Notification, { NotificationType } from '../models/Notification.model';
 import mongoose from 'mongoose';
 
 export class NotificationService {
@@ -6,7 +6,7 @@ export class NotificationService {
         userId: string | mongoose.Types.ObjectId;
         title: string;
         message: string;
-        type: 'approval' | 'rejection' | 'application' | 'attendance' | 'completion' | 'message' | 'rating' | 'update';
+        type: NotificationType;
         relatedId?: string | mongoose.Types.ObjectId;
         route: string;
     }) {

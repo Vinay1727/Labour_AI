@@ -1,10 +1,22 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export type NotificationType =
+    | 'message'
+    | 'rating'
+    | 'approval'
+    | 'rejection'
+    | 'application'
+    | 'attendance'
+    | 'completion'
+    | 'update'
+    | 'cancellation'
+    | 'info';
+
 export interface INotification extends Document {
     userId: mongoose.Types.ObjectId;
     title: string;
     message: string;
-    type: 'approval' | 'rejection' | 'application' | 'attendance' | 'completion' | 'message' | 'rating' | 'update';
+    type: NotificationType;
     relatedId?: mongoose.Types.ObjectId; // jobId / dealId / chatId
     route: string; // screen name to open
     isRead: boolean;
@@ -17,7 +29,7 @@ const NotificationSchema: Schema = new Schema({
     message: { type: String, required: true },
     type: {
         type: String,
-        enum: ['approval', 'rejection', 'application', 'attendance', 'completion', 'message', 'rating', 'update'],
+        enum: ['approval', 'rejection', 'application', 'attendance', 'completion', 'message', 'rating', 'update', 'cancellation', 'info'],
         required: true
     },
     relatedId: { type: Schema.Types.ObjectId },
