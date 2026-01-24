@@ -4,7 +4,9 @@ import {
     getJobs,
     getJobDetails,
     applyToJob,
-    handleApplication
+    handleApplication,
+    updateJob,
+    deleteJob
 } from '../controllers/job.controller';
 import { protect } from '../middleware/auth.middleware';
 import { restrictTo } from '../middleware/role.middleware';
@@ -15,6 +17,8 @@ const router = express.Router();
 router.post('/', protect, restrictTo('contractor'), uploadJobImages.array('images', 5), createJob);
 router.get('/', protect, getJobs);
 router.get('/:jobId', protect, getJobDetails);
+router.put('/:jobId', protect, restrictTo('contractor'), uploadJobImages.array('images', 5), updateJob);
+router.delete('/:jobId', protect, restrictTo('contractor'), deleteJob);
 router.post('/:jobId/apply', protect, restrictTo('labour'), applyToJob);
 router.post('/:jobId/applications/:labourId', protect, restrictTo('contractor'), handleApplication);
 

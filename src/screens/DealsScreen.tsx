@@ -110,6 +110,33 @@ export default function DealsScreen() {
                 endpoint = `deals/${dealId}/request-completion`;
             } else if (newStatus === 'completed') {
                 endpoint = `deals/${dealId}/approve-completion`;
+            } else if (newStatus === 'cancelled') {
+                Alert.alert(
+                    t('cancel_job' as any),
+                    t('cancel_confirm_msg' as any),
+                    [
+                        { text: t('no' as any), style: 'cancel' },
+                        {
+                            text: t('yes_cancel' as any),
+                            style: 'destructive',
+                            onPress: async () => {
+                                try {
+                                    setLoading(true);
+                                    const res = await api.post(`deals/${dealId}/cancel`, { reason: 'Cancelled by user' });
+                                    if (res.data.success) {
+                                        Alert.alert(t('success' as any), 'Job cancelled');
+                                        fetchDeals();
+                                    }
+                                } catch (err: any) {
+                                    Alert.alert('Error', err.response?.data?.message || 'Cancellation failed');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }
+                        }
+                    ]
+                );
+                return;
             }
 
             if (!endpoint) return;
@@ -411,6 +438,8 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: Colors.textPrimary,
+        fontFamily: 'monospace',
+        letterSpacing: 2,
     },
     subTitle: {
         fontSize: 14,

@@ -7,6 +7,7 @@ import {
     rejectCompletion,
     updateDealStatus,
     approveApplication,
+    cancelDeal,
     getDeal,
     getDeals
 } from '../controllers/deal.controller';
@@ -26,5 +27,6 @@ router.put('/status', protect, restrictTo('contractor'), updateDealStatus);
 router.post('/:dealId/request-completion', protect, restrictTo('labour'), requestCompletion);
 router.post('/:dealId/approve-completion', protect, restrictTo('contractor'), approveCompletion);
 router.post('/:dealId/reject-completion', protect, restrictTo('contractor'), rejectCompletion);
+router.post('/:dealId/cancel', protect, cancelDeal);
 
 export default router;

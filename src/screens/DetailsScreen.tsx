@@ -434,7 +434,7 @@ export default function DetailsScreen({ route, navigation }: any) {
                                                     color={app.status === 'approved' ? '#059669' : app.status === 'rejected' ? '#DC2626' : '#B45309'}
                                                 />
                                                 <Text style={[styles.miniStatusText, { color: app.status === 'approved' ? '#059669' : app.status === 'rejected' ? '#DC2626' : '#B45309' }]}>
-                                                    {app.status === 'approved' ? 'Mili' : app.status === 'rejected' ? 'Nahi' : 'Sawal'}
+                                                    {app.status === 'approved' ? 'Mili' : app.status === 'rejected' ? 'Nahi' : 'Apply kar diya he'}
                                                 </Text>
                                             </View>
                                         </View>
@@ -489,11 +489,14 @@ export default function DetailsScreen({ route, navigation }: any) {
 
                     {role === 'labour' && !fromDeals && (
                         <TouchableOpacity
-                            style={styles.mainApplyBtn}
+                            style={[styles.mainApplyBtn, isApplied && { backgroundColor: Colors.info }]}
                             onPress={() => handleApply()}
+                            disabled={applying}
                         >
-                            <AppIcon name="hand-right-outline" size={24} color={Colors.white} />
-                            <Text style={styles.mainApplyBtnText}>Kaam ke liye Apply Karein</Text>
+                            <AppIcon name={isApplied ? "checkmark-done-circle" : "hand-right-outline"} size={24} color={Colors.white} />
+                            <Text style={styles.mainApplyBtnText}>
+                                {isApplied ? 'Apply kar diya he' : 'Kaam ke liye Apply Karein'}
+                            </Text>
                         </TouchableOpacity>
                     )}
                 </ScrollView>
@@ -562,7 +565,7 @@ const styles = StyleSheet.create({
     loadingText: { marginTop: 10, color: Colors.textSecondary },
     appHeader: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     backBtn: { padding: 4, marginRight: spacing.sm },
-    headerTitle: { fontSize: 18, fontWeight: 'bold' },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', fontFamily: 'sans-serif-condensed', textTransform: 'uppercase' },
     scrollContent: { padding: spacing.md, paddingBottom: 40 },
     profileHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.white, padding: spacing.lg, borderRadius: 20, marginBottom: spacing.md, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
     avatarLarge: { width: 70, height: 70, borderRadius: 35, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: spacing.lg },

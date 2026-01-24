@@ -2,7 +2,7 @@
   "expo": {
     "name": "Labour Chowk",
     "slug": "labour-chowk",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "userInterfaceStyle": "light",
@@ -20,6 +20,7 @@
     },
     "android": {
       "package": "com.labourchowk.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#4F46E5"
@@ -37,6 +38,12 @@
       "eas": {
         "projectId": "368926c4-4e09-45b2-b0c6-9cc44aee3ae1"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/368926c4-4e09-45b2-b0c6-9cc44aee3ae1"
     }
   }
 }

@@ -8,7 +8,10 @@ import { JobCard } from '../../../components/cards/JobCard';
 export const LabourHome = ({ navigation }: any) => {
     return (
         <ScreenWrapper>
-            <Header title="Find Work" />
+            <Header
+                title="Find Work"
+                titleStyle={{ fontFamily: 'serif', fontStyle: 'italic', letterSpacing: 1 }}
+            />
             <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
                 <View style={styles.actionSection}>
                     <Text style={styles.sectionTitle}>Status</Text>

@@ -10,7 +10,8 @@ export type DealStatus =
     | 'completion_requested' // Labour marked done, waiting for contractor
     | 'finished'             // Work approved, waiting for rating
     | 'completed'            // Both sides rated, terminal state
-    | 'rejected';           // Application rejected
+    | 'rejected'             // Application rejected
+    | 'cancelled';           // Job cancelled by either party
 
 export interface Deal {
     id: string;

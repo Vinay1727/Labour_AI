@@ -79,7 +79,7 @@ export const AppButton = ({
                         styles.text,
                         { color: getTextColor() },
                         textStyle
-                    ]}>
+                    ]} numberOfLines={1} ellipsizeMode="tail">
                         {title}
                     </Text>
                 </View>

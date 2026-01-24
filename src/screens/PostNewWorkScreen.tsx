@@ -32,7 +32,9 @@ interface SkillRequirement {
     };
 }
 
-export default function PostNewWorkScreen({ navigation }: any) {
+export default function PostNewWorkScreen({ navigation, route }: any) {
+    const jobData = route.params?.jobData;
+    const isEditMode = !!jobData;
     const { t } = useTranslation();
     const [selectedSkills, setSelectedSkills] = useState<SkillRequirement[]>([]);
     const [workSize, setWorkSize] = useState({ length: '', height: '' });
@@ -44,13 +46,33 @@ export default function PostNewWorkScreen({ navigation }: any) {
     const [isLoading, setIsLoading] = useState(false);
     const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
+    const [searchQuery, setSearchQuery] = useState('');
+
     const workTypes = [
         { id: 'painter', label: t('painter'), icon: '🎨', needsSize: true, skilled: true },
         { id: 'mistri', label: t('mistri'), icon: '🧱', needsSize: true, skilled: true },
         { id: 'helper', label: t('helper'), icon: '👷', needsSize: false, skilled: false },
         { id: 'electrician', label: t('electrician'), icon: '⚡', needsSize: false, skilled: true },
         { id: 'plumber', label: t('plumber'), icon: '🚰', needsSize: false, skilled: true },
+        { id: 'carpenter', label: t('carpenter'), icon: '🪚', needsSize: false, skilled: true },
+        { id: 'welder', label: t('welder'), icon: '👨‍🏭', needsSize: false, skilled: true },
+        { id: 'tile_mason', label: t('tile_mason'), icon: '📐', needsSize: true, skilled: true },
+        { id: 'pop_false_ceiling', label: t('pop_false_ceiling'), icon: '🏗️', needsSize: true, skilled: true },
+        { id: 'fabricator', label: t('fabricator'), icon: '🛠️', needsSize: false, skilled: true },
+        { id: 'gardener', label: t('gardener'), icon: '🪴', needsSize: false, skilled: true },
+        { id: 'deep_cleaning', label: t('deep_cleaning'), icon: '🧹', needsSize: false, skilled: true },
+        { id: 'driver', label: t('driver'), icon: '🚗', needsSize: false, skilled: true },
+        { id: 'cctv_tech', label: t('cctv_tech'), icon: '📹', needsSize: false, skilled: true },
+        { id: 'ac_service', label: t('ac_service'), icon: '❄️', needsSize: false, skilled: true },
+        { id: 'ro_service', label: t('ro_service'), icon: '💧', needsSize: false, skilled: true },
+        { id: 'loading_unloading', label: t('loading_unloading'), icon: '📦', needsSize: false, skilled: false },
+        { id: 'pest_control', label: t('pest_control'), icon: '🛡️', needsSize: false, skilled: true },
     ];
+
+    const filteredWorkTypes = workTypes.filter(type =>
+        type.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        type.id.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const durations = [
         { id: '1_day', label: '1 Day', type: 'fixed' },
@@ -147,8 +169,47 @@ export default function PostNewWorkScreen({ navigation }: any) {
     };
 
     useEffect(() => {
-        detectLocation();
-    }, []);
+        if (isEditMode) {
+            // Pre-fill fields
+            if (jobData.skills) {
+                setSelectedSkills(jobData.skills.map((s: any) => ({
+                    id: s.skillType,
+                    count: s.requiredCount,
+                    payment: {
+                        amount: s.payment?.amount?.toString() || '',
+                        type: s.payment?.type || 'per_day'
+                    }
+                })));
+            }
+            if (jobData.workSize) {
+                setWorkSize({
+                    length: jobData.workSize.length?.toString() || '',
+                    height: jobData.workSize.height?.toString() || ''
+                });
+            }
+            if (jobData.duration) {
+                setDurationLabel(jobData.duration);
+            }
+            if (jobData.description) {
+                setAdditionalRequirements(jobData.description);
+            }
+            if (jobData.location) {
+                setLocation({
+                    latitude: jobData.location.coordinates[1],
+                    longitude: jobData.location.coordinates[0],
+                    address: jobData.location.address
+                });
+            }
+            if (jobData.images) {
+                // For images, we might need to handle URLs vs local URIs
+                // But for now let's just show them if they are local or handle remote later
+                // images are likely URLs now.
+                setImages(jobData.images);
+            }
+        } else {
+            detectLocation();
+        }
+    }, [isEditMode, jobData]);
 
     const isFormValid = () => {
         if (selectedSkills.length === 0) return false;
@@ -197,8 +258,10 @@ export default function PostNewWorkScreen({ navigation }: any) {
                 }));
             }
 
-            // Append images
+            // Append new local images only
             images.forEach((uri, index) => {
+                if (!uri.startsWith('file://') && !uri.startsWith('content://')) return; // Skip remote URLs
+
                 const filename = uri.split('/').pop();
                 const match = /\.(\w+)$/.exec(filename || '');
                 const type = match ? `image/${match[1]}` : `image`;
@@ -211,13 +274,16 @@ export default function PostNewWorkScreen({ navigation }: any) {
             });
 
             console.log('Sending Post Work FormData');
-            const response = await api.post('jobs', formData, {
+            const url = isEditMode ? `jobs/${jobData._id}` : 'jobs';
+            const method = isEditMode ? 'put' : 'post';
+
+            const response = await api[method](url, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
             console.log('Post Work Response:', response.data);
-            Alert.alert('Success', 'Work posted successfully!');
+            Alert.alert('Success', isEditMode ? 'Work updated successfully!' : 'Work posted successfully!');
             navigation.goBack();
         } catch (error: any) {
             console.error('Post Work Error:', error.response?.data || error.message);
@@ -258,17 +324,38 @@ export default function PostNewWorkScreen({ navigation }: any) {
                         <AppIcon name="arrow-back" size={24} color={Colors.textPrimary} />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.headerTitle}>{t('post_new_work')}</Text>
-                        <Text style={styles.headerSubtitle}>{t('tell_us_what_work')}</Text>
+                        <Text style={styles.headerTitle}>{isEditMode ? 'Edit Work' : t('post_new_work')}</Text>
+                        <Text style={styles.headerSubtitle}>{isEditMode ? 'Update your job details' : t('tell_us_what_work')}</Text>
                     </View>
                 </View>
 
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     {/* Work Type Selection */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>{t('select_work_type')}</Text>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionTitle}>{t('select_work_type')}</Text>
+                            {selectedSkills.length > 0 && (
+                                <Text style={styles.selectedCountText}>{selectedSkills.length} selected</Text>
+                            )}
+                        </View>
+
+                        <View style={styles.searchContainer}>
+                            <AppIcon name="search-outline" size={20} color={Colors.textSecondary} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search skills (e.g. Painter, Driver...)"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <AppIcon name="close-circle" size={20} color={Colors.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
                         <View style={styles.workTypeGrid}>
-                            {workTypes.map((type) => (
+                            {filteredWorkTypes.map((type) => (
                                 <TouchableOpacity
                                     key={type.id}
                                     style={[
@@ -278,18 +365,25 @@ export default function PostNewWorkScreen({ navigation }: any) {
                                     onPress={() => toggleWorkType(type.id)}
                                     activeOpacity={0.8}
                                 >
-                                    <Text style={styles.typeIcon}>{type.icon}</Text>
+                                    <View style={styles.typeIconContainer}>
+                                        <Text style={styles.typeIcon}>{type.icon}</Text>
+                                    </View>
                                     <Text style={[
                                         styles.typeLabel,
                                         isSkillSelected(type.id) && styles.selectedTypeLabel
-                                    ]}>{type.label}</Text>
+                                    ]} numberOfLines={1}>{type.label}</Text>
                                     {isSkillSelected(type.id) && (
                                         <View style={styles.checkBadge}>
-                                            <AppIcon name="checkmark-circle" size={20} color={Colors.primary} />
+                                            <AppIcon name="checkmark-circle" size={18} color={Colors.primary} />
                                         </View>
                                     )}
                                 </TouchableOpacity>
                             ))}
+                            {filteredWorkTypes.length === 0 && (
+                                <View style={styles.noResultContainer}>
+                                    <Text style={styles.noResultText}>No skills found for "{searchQuery}"</Text>
+                                </View>
+                            )}
                         </View>
                     </View>
 
@@ -504,7 +598,7 @@ export default function PostNewWorkScreen({ navigation }: any) {
 
                 <View style={styles.footer}>
                     <AppButton
-                        title={t('post_work')}
+                        title={isEditMode ? 'Update Details' : t('post_work')}
                         onPress={handlePostWork}
                         disabled={!isFormValid()}
                         loading={isLoading}
@@ -537,6 +631,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: typography.weight.bold,
         color: Colors.textPrimary,
+        fontFamily: 'serif',
+        textTransform: 'uppercase',
     },
     headerSubtitle: {
         fontSize: 14,
@@ -555,48 +651,99 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: typography.weight.bold,
         color: Colors.textPrimary,
-        marginBottom: spacing.xs,
     },
     sectionSubtitle: {
         fontSize: 13,
         color: Colors.textSecondary,
         marginBottom: spacing.md,
     },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    selectedCountText: {
+        fontSize: 12,
+        color: Colors.primary,
+        fontWeight: typography.weight.bold,
+        backgroundColor: Colors.primaryLight,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.white,
+        borderRadius: 12,
+        paddingHorizontal: spacing.md,
+        marginBottom: spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        height: 50,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: spacing.sm,
+        fontSize: 15,
+        color: Colors.textPrimary,
+    },
     workTypeGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: spacing.md,
+        gap: spacing.sm,
     },
     typeCard: {
-        width: '47%',
+        width: '31.5%',
         backgroundColor: Colors.white,
         borderRadius: 16,
-        padding: spacing.md,
+        padding: spacing.sm,
         alignItems: 'center',
         borderWidth: 1.5,
         borderColor: Colors.border,
         position: 'relative',
+        marginBottom: spacing.xs,
     },
     selectedTypeCard: {
         borderColor: Colors.primary,
         backgroundColor: Colors.primaryLight,
     },
+    typeIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: Colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
     typeIcon: {
-        fontSize: 32,
-        marginBottom: spacing.xs,
+        fontSize: 24,
     },
     typeLabel: {
-        fontSize: 14,
+        fontSize: 11,
         fontWeight: typography.weight.bold,
-        color: Colors.textPrimary,
+        color: Colors.textSecondary,
+        textAlign: 'center',
     },
     selectedTypeLabel: {
         color: Colors.primary,
     },
     checkBadge: {
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: 4,
+        right: 4,
+    },
+    noResultContainer: {
+        width: '100%',
+        padding: spacing.xl,
+        alignItems: 'center',
+    },
+    noResultText: {
+        color: Colors.textSecondary,
+        fontSize: 14,
+        fontStyle: 'italic',
     },
     skillRowCard: {
         backgroundColor: Colors.white,

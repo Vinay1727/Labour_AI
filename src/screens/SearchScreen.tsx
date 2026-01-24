@@ -51,7 +51,10 @@ export default function SearchScreen() {
     const getMyLocation = async () => {
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
+            if (status !== 'granted') {
+                Alert.alert("Permission Required", "Please allow location access to find labour near you.");
+                return;
+            }
             const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             setUserLocation(loc.coords);
             return loc.coords;
@@ -160,6 +163,51 @@ export default function SearchScreen() {
         </View>
     );
 
+    const renderNearMeSection = () => {
+        if (isLabour || labours.length === 0) return null;
+
+        // Show top 5 nearest ones separately on top
+        const nearestLabours = [...labours].sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0)).slice(0, 5);
+
+        return (
+            <View style={styles.nearMeSection}>
+                <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionTitle}>Labour Near You 📍</Text>
+                    <Text style={styles.distanceInfo}>Within {distanceKm} km</Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nearMeScroll}>
+                    {nearestLabours.map((l: any) => (
+                        <TouchableOpacity
+                            key={l._id}
+                            style={styles.nearMeCard}
+                            onPress={() => navigation.navigate('Details', {
+                                itemId: l._id,
+                                itemType: 'labour',
+                                name: l.name,
+                                skills: l.skills
+                            })}
+                        >
+                            <View style={styles.nearAvatar}>
+                                <Text style={styles.nearAvatarText}>{l.name.charAt(0)}</Text>
+                                {l.distance !== undefined && (
+                                    <View style={styles.miniDistBadge}>
+                                        <Text style={styles.miniDistText}>{(l.distance / 1000).toFixed(1)}km</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <Text style={styles.nearName} numberOfLines={1}>{l.name}</Text>
+                            <Text style={styles.nearSkill} numberOfLines={1}>{l.skills?.[0] || 'Worker'}</Text>
+                            <View style={styles.nearRating}>
+                                <AppIcon name="star" size={10} color="#F59E0B" />
+                                <Text style={styles.nearRatingText}>{l.averageRating?.toFixed(1) || '0.0'}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             {renderHeader()}
@@ -168,7 +216,15 @@ export default function SearchScreen() {
                 data={isLabour ? jobs : labours}
                 keyExtractor={(item: any) => item._id}
                 contentContainerStyle={styles.listContent}
-                ListHeaderComponent={renderInsights()}
+                ListHeaderComponent={
+                    <>
+                        {renderNearMeSection()}
+                        {renderInsights()}
+                        {!isLabour && labours.length > 0 && (
+                            <Text style={styles.allLaboursTitle}>All Skilled Workers</Text>
+                        )}
+                    </>
+                }
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchResults(true); }} />}
                 renderItem={({ item }) => (
                     isLabour ? (
@@ -233,6 +289,24 @@ const styles = StyleSheet.create({
     insightCard: { backgroundColor: Colors.white, padding: 12, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: Colors.primary, width: 100, alignItems: 'center' },
     insightSkill: { fontSize: 12, fontWeight: 'bold', color: Colors.textPrimary, textAlign: 'center' },
     insightCount: { fontSize: 18, fontWeight: '900', color: Colors.primary, marginTop: 4 },
+
+    // Near Me Section Styles
+    nearMeSection: { marginVertical: spacing.md },
+    sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.textPrimary },
+    distanceInfo: { fontSize: 12, color: Colors.textSecondary, fontWeight: '600' },
+    nearMeScroll: { gap: 15, paddingRight: 20 },
+    nearMeCard: { backgroundColor: Colors.white, borderRadius: 24, padding: 16, width: 140, alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+    nearAvatar: { width: 60, height: 60, borderRadius: 20, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 10, position: 'relative' },
+    nearAvatarText: { fontSize: 24, fontWeight: 'bold', color: Colors.primary },
+    miniDistBadge: { position: 'absolute', bottom: -5, right: -5, backgroundColor: Colors.secondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 2, borderColor: Colors.white },
+    miniDistText: { fontSize: 9, fontWeight: 'bold', color: Colors.white },
+    nearName: { fontSize: 14, fontWeight: 'bold', color: Colors.textPrimary },
+    nearSkill: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
+    nearRating: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 4, backgroundColor: '#FFFBEB', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    nearRatingText: { fontSize: 10, fontWeight: 'bold', color: '#B45309' },
+    allLaboursTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.textPrimary, marginVertical: 16, marginLeft: 4 },
+
     emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 80, paddingHorizontal: 40 },
     emptyTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.textPrimary, marginTop: 20, textAlign: 'center' },
     fab: { position: 'absolute', bottom: 30, left: 30, right: 30, backgroundColor: Colors.secondary, height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 10 },

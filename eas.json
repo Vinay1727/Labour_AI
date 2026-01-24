@@ -10,9 +10,18 @@
         "preview": {
             "android": {
                 "buildType": "apk"
-            }
+            },
+            "channel": "preview"
         },
-        "production": {}
+        "status_bar_fix": {
+            "android": {
+                "buildType": "apk"
+            },
+            "channel": "production"
+        },
+        "production": {
+            "channel": "production"
+        }
     },
     "submit": {
         "production": {}

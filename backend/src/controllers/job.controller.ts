@@ -281,3 +281,67 @@ export const handleApplication = async (req: AuthRequest, res: Response) => {
         success(res, job, `Application ${action}d successfully`);
     } catch (e: any) { error(res, e.message); }
 };
+
+export const updateJob = async (req: AuthRequest, res: Response) => {
+    try {
+        const { jobId } = req.params;
+        let updates = req.body;
+
+        const job = await Job.findById(jobId);
+        if (!job) return error(res, 'Job not found', 404);
+        if (job.contractorId.toString() !== req.user._id.toString()) {
+            return error(res, 'Unauthorized', 401);
+        }
+
+        // Handle stringified fields
+        if (typeof updates.location === 'string') updates.location = JSON.parse(updates.location);
+        if (typeof updates.workSize === 'string') updates.workSize = JSON.parse(updates.workSize);
+        if (typeof updates.skills === 'string') updates.skills = JSON.parse(updates.skills);
+
+        // Handle images if any
+        if (req.files && (req.files as any).length > 0) {
+            const newImages = (req.files as Express.Multer.File[])?.map(file => file.path.replace(/\\/g, '/'));
+            updates.images = [...(job.images || []), ...newImages];
+        }
+
+        const updatedJob = await Job.findByIdAndUpdate(jobId, updates, { new: true });
+        success(res, updatedJob, 'Job updated successfully');
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};
+
+export const deleteJob = async (req: AuthRequest, res: Response) => {
+    try {
+        const { jobId } = req.params;
+        const { reason } = req.body;
+
+        const job = await Job.findById(jobId);
+        if (!job) return error(res, 'Job not found', 404);
+        if (job.contractorId.toString() !== req.user._id.toString()) {
+            return error(res, 'Unauthorized', 401);
+        }
+
+        // Notify all applicants before deleting
+        const applicants = job.applications.map(app => app.labourId.toString());
+        for (const labourId of applicants) {
+            await NotificationService.createNotification({
+                userId: labourId,
+                title: 'Job Cancelled 🚫',
+                message: `Contractor ne "${job.workType}" job delete kar di hai. Reason: ${reason || 'N/A'}`,
+                type: 'info',
+                relatedId: job._id.toString(),
+                route: 'Main'
+            });
+        }
+
+        // Also handle associated Deals (soft delete or status change might be better but let's delete if 'applied')
+        await Deal.deleteMany({ jobId: job._id });
+
+        await Job.findByIdAndDelete(jobId);
+        success(res, null, 'Job deleted successfully');
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};
+

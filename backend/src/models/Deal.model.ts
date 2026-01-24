@@ -4,7 +4,7 @@ export interface IDeal extends Document {
     jobId: mongoose.Schema.Types.ObjectId;
     contractorId: mongoose.Schema.Types.ObjectId;
     labourId: mongoose.Schema.Types.ObjectId;
-    status: 'applied' | 'assigned' | 'active' | 'completion_requested' | 'finished' | 'completed' | 'rejected';
+    status: 'applied' | 'assigned' | 'active' | 'completion_requested' | 'finished' | 'completed' | 'rejected' | 'cancelled';
     paymentStatus: 'pending' | 'paid';
     labourFinishRequested: boolean;
     appliedSkill?: string;
@@ -26,7 +26,7 @@ const DealSchema: Schema = new Schema({
     labourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     status: {
         type: String,
-        enum: ['applied', 'assigned', 'active', 'completion_requested', 'finished', 'completed', 'rejected'],
+        enum: ['applied', 'assigned', 'active', 'completion_requested', 'finished', 'completed', 'rejected', 'cancelled'],
         default: 'applied'
     },
     paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
