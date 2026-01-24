@@ -161,6 +161,21 @@ export const getSkillInsights = async (req: AuthRequest, res: Response) => {
 
         console.log('Skill Insights Pipeline:', JSON.stringify(pipeline, null, 2));
         const results = await User.aggregate(pipeline);
+
+        // Fallback: If no insights near the user, show global skill insights
+        if (results.length === 0 && hasLocation) {
+            console.log('[Insights] No local data, showing global skill stats');
+            const globalPipeline = [
+                { $match: { role: 'labour' } },
+                { $unwind: '$skills' },
+                { $group: { _id: '$skills', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 10 }
+            ];
+            const globalResults = await User.aggregate(globalPipeline);
+            return success(res, globalResults);
+        }
+
         success(res, results);
     } catch (e: any) {
         console.error('Skill Insights Error:', e);
