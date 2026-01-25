@@ -8,6 +8,8 @@ export interface IDeal extends Document {
     paymentStatus: 'pending' | 'paid';
     labourFinishRequested: boolean;
     appliedSkill?: string;
+    hasPartner?: boolean;
+    partnerCount?: number;
     labourRated?: boolean;
     contractorRated?: boolean;
     completionStatus?: 'requested' | 'approved' | 'rejected';
@@ -32,6 +34,8 @@ const DealSchema: Schema = new Schema({
     paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
     labourFinishRequested: { type: Boolean, default: false },
     appliedSkill: { type: String },
+    hasPartner: { type: Boolean, default: false },
+    partnerCount: { type: Number, default: 0 },
     labourRated: { type: Boolean, default: false },
     contractorRated: { type: Boolean, default: false },
     completionStatus: {
