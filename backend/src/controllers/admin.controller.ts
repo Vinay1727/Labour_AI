@@ -77,3 +77,64 @@ export const getContractors = async (req: Request, res: Response) => {
         error(res, e.message);
     }
 };
+
+// 5. Get All Jobs (For Admin Job Board)
+export const getJobs = async (req: Request, res: Response) => {
+    try {
+        const jobs = await Job.find({})
+            .populate('contractorId', 'name phone')
+            .sort({ createdAt: -1 });
+        success(res, jobs);
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};
+
+// 6. Get All Active Deals
+export const getActiveDeals = async (req: Request, res: Response) => {
+    try {
+        const deals = await Deal.find({ status: { $in: ['active', 'applied', 'assigned', 'completion_requested'] } })
+            .populate('contractorId', 'name phone')
+            .populate('labourId', 'name phone')
+            .populate('jobId', 'workType location')
+            .sort({ createdAt: -1 });
+
+        success(res, deals);
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};
+
+// 7. Get Verification Requests
+export const getVerificationRequests = async (req: Request, res: Response) => {
+    try {
+        // Fetch users who are not yet verified
+        const requests = await User.find({ verificationStatus: 'pending' })
+            .select('name role location createdAt skills phone')
+            .sort({ createdAt: -1 });
+
+        success(res, requests);
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};
+
+// 8. Verify User (Approve/Reject)
+export const verifyUser = async (req: Request, res: Response) => {
+    try {
+        const { userId, status, reason } = req.body; // status: 'approved' | 'rejected'
+        const isVerified = status === 'approved';
+
+        const user = await User.findByIdAndUpdate(userId, {
+            isVerified,
+            verificationStatus: status,
+            verificationNote: reason
+        }, { new: true });
+
+        if (!user) return error(res, "User not found", 404);
+
+        success(res, user, `User ${status} successfully`);
+    } catch (e: any) {
+        error(res, e.message);
+    }
+};

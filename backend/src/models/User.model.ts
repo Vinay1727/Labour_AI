@@ -16,6 +16,8 @@ export interface IUser extends Document {
     reviewCount: number;
     rank: 'Top Labour' | 'Trusted' | 'Reliable' | 'Average' | 'Risky';
     trustScore: number;
+    verificationStatus?: 'pending' | 'approved' | 'rejected';
+    verificationNote?: string;
     pendingPhone?: string;
     phoneUpdateOTP?: string;
     phoneUpdateOTPExpire?: Date;
@@ -43,6 +45,8 @@ const UserSchema: Schema = new Schema({
         default: 'Average'
     },
     trustScore: { type: Number, default: 0 },
+    verificationStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    verificationNote: { type: String },
     pendingPhone: { type: String },
     phoneUpdateOTP: { type: String },
     phoneUpdateOTPExpire: { type: Date }
