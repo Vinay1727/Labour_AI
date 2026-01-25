@@ -406,9 +406,40 @@ export default function DetailsScreen({ route, navigation }: any) {
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Labour Required</Text>
+                        <Text style={styles.sectionTitle}>Kaam ke liye Labour chahiye (Breakdown)</Text>
                         <View style={styles.whiteCard}>
-                            <Text style={styles.reqValue}>{data.labourAccepted || 0} / {data.labourRequired || 0} Workers joined</Text>
+                            {data.skills && data.skills.length > 0 ? (
+                                data.skills.map((skill: any, index: number) => (
+                                    <View key={index} style={[styles.skillReqRow, index < data.skills.length - 1 && styles.skillReqBorder]}>
+                                        <View style={styles.skillReqHeader}>
+                                            <View style={styles.row}>
+                                                <AppIcon name="hammer-outline" size={16} color={Colors.primary} />
+                                                <Text style={styles.skillReqType}>{skill.skillType}</Text>
+                                            </View>
+                                            <View style={styles.skillReqBadge}>
+                                                <Text style={styles.skillReqCount}>
+                                                    {skill.filledCount || 0} / {skill.requiredCount} Seats
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.skillReqFooter}>
+                                            <Text style={styles.skillReqPrice}>
+                                                ₹{skill.payment?.amount || data.payment?.replace('₹', '').split(' ')[0]} {skill.payment?.type?.replace('_', ' ') || 'per day'}
+                                            </Text>
+                                            {skill.filledCount >= skill.requiredCount && (
+                                                <Text style={styles.fullNote}>Full</Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                ))
+                            ) : (
+                                <View style={styles.rowBetween}>
+                                    <Text style={styles.reqValue}>{data.labourAccepted || 0} / {data.labourRequired || 0} Workers joined</Text>
+                                    <View style={styles.progressBarBgSmall}>
+                                        <View style={[styles.progressBarFillSmall, { width: `${(data.labourAccepted / data.labourRequired) * 100}%` }]} />
+                                    </View>
+                                </View>
+                            )}
                         </View>
                     </View>
 
@@ -527,20 +558,25 @@ export default function DetailsScreen({ route, navigation }: any) {
 
                             <View style={styles.modalSection}>
                                 <Text style={styles.modalLabel}>Select your Skill:</Text>
+                                <Text style={styles.modalSubLabel}>Job ki requirement ke hisaab se select karein</Text>
                                 <View style={styles.skillList}>
                                     {(user?.skills || []).map((skill: string) => {
                                         const alreadyApplied = data.applications?.some(
                                             (app: any) => (app.labourId === user?.id || app.labourId?._id === user?.id) && app.appliedSkill === skill
                                         );
+                                        const isRequired = data.skills?.some((req: any) => req.skillType.toLowerCase() === skill.toLowerCase());
                                         const isSelected = selectedSkill === skill;
 
+                                        // If job has specific skills, we should prioritize showing those. 
+                                        // But for flexibility, we show all user skills and highlight the required ones.
                                         return (
                                             <TouchableOpacity
                                                 key={skill}
                                                 style={[
                                                     styles.skillChip,
                                                     alreadyApplied && styles.skillChipDisabled,
-                                                    isSelected && styles.skillChipSelected
+                                                    isSelected && styles.skillChipSelected,
+                                                    isRequired && !isSelected && { borderColor: Colors.success, borderWidth: 1.5 }
                                                 ]}
                                                 onPress={() => !alreadyApplied && setSelectedSkill(skill)}
                                                 disabled={alreadyApplied}
@@ -548,21 +584,28 @@ export default function DetailsScreen({ route, navigation }: any) {
                                                 <Text style={[
                                                     styles.skillChipText,
                                                     alreadyApplied && styles.skillChipTextDisabled,
-                                                    isSelected && styles.skillChipTextSelected
-                                                ]}>{skill}</Text>
+                                                    isSelected && styles.skillChipTextSelected,
+                                                    isRequired && !isSelected && { color: Colors.success }
+                                                ]}>{skill}{isRequired ? ' (Required)' : ''}</Text>
                                             </TouchableOpacity>
                                         );
                                     })}
                                 </View>
+                                {!(user?.skills || []).some((s: string) => data.skills?.some((req: any) => req.skillType.toLowerCase() === s.toLowerCase())) && (
+                                    <View style={styles.warningBox}>
+                                        <AppIcon name="alert-circle-outline" size={16} color="#B45309" />
+                                        <Text style={styles.warningText}>Aapki skills job ki requirement se exact match nahi ho rahi, par aap apply kar sakte hain.</Text>
+                                    </View>
+                                )}
                             </View>
 
                             <View style={styles.divider} />
 
                             <View style={styles.modalSection}>
                                 <View style={styles.rowBetween}>
-                                    <View>
-                                        <Text style={styles.modalLabel}>Sath mein partner hain?</Text>
-                                        <Text style={styles.modalSubLabel}>Team ke saath kaam karne ke liye</Text>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Apne doston ko saath layein?</Text>
+                                        <Text style={styles.modalSubLabel}>Team ke saath kaam jaldi khatam hota hai</Text>
                                     </View>
                                     <Switch
                                         value={hasPartner}
@@ -573,24 +616,30 @@ export default function DetailsScreen({ route, navigation }: any) {
                                 </View>
 
                                 {hasPartner && (
-                                    <View style={styles.partnerCounter}>
-                                        <TouchableOpacity
-                                            style={styles.counterBtn}
-                                            onPress={() => setPartnerCount(Math.max(1, partnerCount - 1))}
-                                        >
-                                            <AppIcon name="remove" size={20} color={Colors.textPrimary} />
-                                        </TouchableOpacity>
-                                        <View style={styles.counterValueBox}>
-                                            <Text style={styles.counterValue}>{partnerCount}</Text>
-                                            <Text style={styles.counterLabel}>Partner(s)</Text>
+                                    <>
+                                        <View style={styles.partnerCounter}>
+                                            <TouchableOpacity
+                                                style={styles.counterBtn}
+                                                onPress={() => setPartnerCount(Math.max(1, partnerCount - 1))}
+                                            >
+                                                <AppIcon name="remove" size={20} color={Colors.textPrimary} />
+                                            </TouchableOpacity>
+                                            <View style={styles.counterValueBox}>
+                                                <Text style={styles.counterValue}>{partnerCount}</Text>
+                                                <Text style={styles.counterLabel}>Bande (Partners)</Text>
+                                            </View>
+                                            <TouchableOpacity
+                                                style={styles.counterBtn}
+                                                onPress={() => setPartnerCount(Math.min(5, partnerCount + 1))}
+                                            >
+                                                <AppIcon name="add" size={20} color={Colors.textPrimary} />
+                                            </TouchableOpacity>
                                         </View>
-                                        <TouchableOpacity
-                                            style={styles.counterBtn}
-                                            onPress={() => setPartnerCount(Math.min(5, partnerCount + 1))}
-                                        >
-                                            <AppIcon name="add" size={20} color={Colors.textPrimary} />
-                                        </TouchableOpacity>
-                                    </View>
+                                        <View style={styles.teamNoteBox}>
+                                            <AppIcon name="information-circle-outline" size={16} color={Colors.primary} />
+                                            <Text style={styles.teamNoteText}>Aap apni team ke saath baki bachi hui positions fill kar sakte hain.</Text>
+                                        </View>
+                                    </>
                                 )}
                             </View>
 
@@ -765,6 +814,21 @@ const styles = StyleSheet.create({
     submitBtn: { marginTop: 24, borderRadius: 12 },
     closeBtn: { marginTop: 10, padding: 12, alignItems: 'center' },
     closeBtnText: { color: Colors.textSecondary, fontWeight: 'bold' },
+    skillReqRow: { paddingVertical: 12 },
+    skillReqBorder: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    skillReqHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    skillReqType: { fontSize: 16, fontWeight: 'bold', color: Colors.textPrimary, marginLeft: 8 },
+    skillReqBadge: { backgroundColor: Colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+    skillReqCount: { fontSize: 12, fontWeight: 'bold', color: Colors.primary },
+    skillReqFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    skillReqPrice: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
+    fullNote: { fontSize: 12, color: Colors.success, fontWeight: 'bold' },
+    progressBarBgSmall: { width: 100, height: 6, backgroundColor: '#E2E8F0', borderRadius: 3 },
+    progressBarFillSmall: { height: '100%', backgroundColor: Colors.primary, borderRadius: 3 },
+    warningBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFBEB', padding: 10, borderRadius: 8, marginTop: 12 },
+    warningText: { fontSize: 12, color: '#B45309', flex: 1 },
+    teamNoteBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F0F9FF', padding: 10, borderRadius: 8, marginTop: 12 },
+    teamNoteText: { fontSize: 12, color: Colors.primary, flex: 1, fontWeight: '500' },
     rejectionDetailBox: {
         backgroundColor: '#FFF1F2',
         marginHorizontal: spacing.l,
