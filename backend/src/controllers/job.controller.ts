@@ -129,7 +129,7 @@ export const getJobDetails = async (req: AuthRequest, res: Response) => {
 export const applyToJob = async (req: AuthRequest, res: Response) => {
     try {
         const { jobId } = req.params;
-        const { appliedSkill } = req.body;
+        const { appliedSkill, hasPartner, partnerCount } = req.body;
         const labourId = req.user._id;
 
         if (req.user.role !== 'labour') {
@@ -156,7 +156,9 @@ export const applyToJob = async (req: AuthRequest, res: Response) => {
             labourId: labourId as any,
             appliedSkill,
             status: 'pending',
-            appliedAt: new Date()
+            appliedAt: new Date(),
+            hasPartner: !!hasPartner,
+            partnerCount: partnerCount || 0
         });
 
         await job.save();
@@ -168,6 +170,8 @@ export const applyToJob = async (req: AuthRequest, res: Response) => {
             contractorId: job.contractorId,
             status: 'applied',
             appliedSkill,
+            hasPartner: !!hasPartner,
+            partnerCount: partnerCount || 0,
             paymentStatus: 'pending'
         });
 
@@ -175,7 +179,7 @@ export const applyToJob = async (req: AuthRequest, res: Response) => {
         await NotificationService.createNotification({
             userId: job.contractorId.toString(),
             title: 'Nayi Application 🧑‍🔧',
-            message: `${req.user.name || 'Ek labour'} ne "${appliedSkill}" ke taur par apply kiya hai.`,
+            message: `${req.user.name || 'Ek labour'}${hasPartner ? ` +${partnerCount} partners` : ''} ne "${appliedSkill}" ke taur par apply kiya hai.`,
             type: 'application',
             relatedId: job._id.toString(),
             route: 'JobApplications'
@@ -206,11 +210,12 @@ export const handleApplication = async (req: AuthRequest, res: Response) => {
         if (!application) return error(res, 'Application not found', 404);
 
         if (action === 'approve') {
-            if (job.filledWorkers >= job.requiredWorkers) {
-                return error(res, 'Job is already full', 400);
+            const totalToFill = 1 + (application.partnerCount || 0);
+            if (job.filledWorkers + totalToFill > job.requiredWorkers) {
+                return error(res, `Sirf ${job.requiredWorkers - job.filledWorkers} jagah bachi hai, par team ke saath ${totalToFill} log hain.`, 400);
             }
             application.status = 'approved';
-            job.filledWorkers += 1;
+            job.filledWorkers += totalToFill;
 
             if (job.filledWorkers === job.requiredWorkers) {
                 job.status = 'in_progress';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, FlatList, Modal, Image as RNImage } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, FlatList, Modal, Image as RNImage, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/AppIcon';
 import { Colors } from '../theme/colors';
@@ -19,6 +19,9 @@ export default function DetailsScreen({ route, navigation }: any) {
     const [isNewUser, setIsNewUser] = useState(false);
     const [showSkillModal, setShowSkillModal] = useState(false);
     const [applying, setApplying] = useState(false);
+    const [hasPartner, setHasPartner] = useState(false);
+    const [partnerCount, setPartnerCount] = useState(1);
+    const [selectedSkill, setSelectedSkill] = useState('');
 
     useEffect(() => {
         fetchDetails();
@@ -108,24 +111,29 @@ export default function DetailsScreen({ route, navigation }: any) {
         }
     };
 
-    const handleApply = async (appliedSkill?: string) => {
-        if (!appliedSkill) {
-            const userSkills = user?.skills || [];
-            if (userSkills.length > 1) {
-                setShowSkillModal(true);
-                return;
-            } else {
-                appliedSkill = userSkills[0] || 'Helper';
-            }
+    const handleApply = async (skillParam?: string) => {
+        const skillToUse = skillParam || selectedSkill;
+
+        if (!skillToUse && (user?.skills || []).length > 1) {
+            setShowSkillModal(true);
+            return;
         }
+
+        const finalSkill = skillToUse || (user?.skills?.[0] || 'Helper');
 
         try {
             setApplying(true);
-            const res = await api.post(`jobs/${itemId}/apply`, { appliedSkill });
+            const res = await api.post(`jobs/${itemId}/apply`, {
+                appliedSkill: finalSkill,
+                hasPartner,
+                partnerCount: hasPartner ? partnerCount : 0
+            });
             if (res.data.success) {
-                Alert.alert('Success', `Applied successfully as ${appliedSkill}`);
-                fetchDetails(); // Refresh to show applied status
+                Alert.alert('Success', `Applied successfully as ${finalSkill}${hasPartner ? ` with ${partnerCount} partners` : ''}`);
+                fetchDetails();
                 setShowSkillModal(false);
+                setHasPartner(false);
+                setPartnerCount(1);
             }
         } catch (err: any) {
             Alert.alert('Error', err.response?.data?.message || 'Application failed');
@@ -490,7 +498,12 @@ export default function DetailsScreen({ route, navigation }: any) {
                     {role === 'labour' && !fromDeals && (
                         <TouchableOpacity
                             style={[styles.mainApplyBtn, isApplied && { backgroundColor: Colors.info }]}
-                            onPress={() => handleApply()}
+                            onPress={() => {
+                                if (user?.skills && user.skills.length === 1) {
+                                    setSelectedSkill(user.skills[0]);
+                                }
+                                setShowSkillModal(true);
+                            }}
                             disabled={applying}
                         >
                             <AppIcon name={isApplied ? "checkmark-done-circle" : "hand-right-outline"} size={24} color={Colors.white} />
@@ -504,34 +517,93 @@ export default function DetailsScreen({ route, navigation }: any) {
                 <Modal
                     visible={showSkillModal}
                     transparent={true}
-                    animationType="fade"
+                    animationType="slide"
                     onRequestClose={() => setShowSkillModal(false)}
                 >
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>Choose Skill</Text>
-                            <Text style={styles.modalSubTitle}>Pick skill for this application</Text>
+                            <Text style={styles.modalTitle}>Apply for Work</Text>
+                            <Text style={styles.modalSubTitle}>Apni details check karein</Text>
 
-                            {(user?.skills || []).map((skill: string) => {
-                                const alreadyApplied = data.applications?.some(
-                                    (app: any) => (app.labourId === user?.id || app.labourId?._id === user?.id) && app.appliedSkill === skill
-                                );
+                            <View style={styles.modalSection}>
+                                <Text style={styles.modalLabel}>Select your Skill:</Text>
+                                <View style={styles.skillList}>
+                                    {(user?.skills || []).map((skill: string) => {
+                                        const alreadyApplied = data.applications?.some(
+                                            (app: any) => (app.labourId === user?.id || app.labourId?._id === user?.id) && app.appliedSkill === skill
+                                        );
+                                        const isSelected = selectedSkill === skill;
 
-                                return (
-                                    <TouchableOpacity
-                                        key={skill}
-                                        style={[styles.skillItem, alreadyApplied && styles.skillItemDisabled]}
-                                        onPress={() => !alreadyApplied && handleApply(skill)}
-                                        disabled={alreadyApplied}
-                                    >
-                                        <Text style={[styles.skillItemText, alreadyApplied && styles.skillItemTextDisabled]}>{skill}</Text>
-                                        {alreadyApplied && <Text style={styles.alreadyAppliedLabel}>Already Applied</Text>}
-                                    </TouchableOpacity>
-                                );
-                            })}
+                                        return (
+                                            <TouchableOpacity
+                                                key={skill}
+                                                style={[
+                                                    styles.skillChip,
+                                                    alreadyApplied && styles.skillChipDisabled,
+                                                    isSelected && styles.skillChipSelected
+                                                ]}
+                                                onPress={() => !alreadyApplied && setSelectedSkill(skill)}
+                                                disabled={alreadyApplied}
+                                            >
+                                                <Text style={[
+                                                    styles.skillChipText,
+                                                    alreadyApplied && styles.skillChipTextDisabled,
+                                                    isSelected && styles.skillChipTextSelected
+                                                ]}>{skill}</Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+
+                            <View style={styles.divider} />
+
+                            <View style={styles.modalSection}>
+                                <View style={styles.rowBetween}>
+                                    <View>
+                                        <Text style={styles.modalLabel}>Sath mein partner hain?</Text>
+                                        <Text style={styles.modalSubLabel}>Team ke saath kaam karne ke liye</Text>
+                                    </View>
+                                    <Switch
+                                        value={hasPartner}
+                                        onValueChange={setHasPartner}
+                                        trackColor={{ false: '#CBD5E1', true: Colors.primaryLight }}
+                                        thumbColor={hasPartner ? Colors.primary : '#F4F4F5'}
+                                    />
+                                </View>
+
+                                {hasPartner && (
+                                    <View style={styles.partnerCounter}>
+                                        <TouchableOpacity
+                                            style={styles.counterBtn}
+                                            onPress={() => setPartnerCount(Math.max(1, partnerCount - 1))}
+                                        >
+                                            <AppIcon name="remove" size={20} color={Colors.textPrimary} />
+                                        </TouchableOpacity>
+                                        <View style={styles.counterValueBox}>
+                                            <Text style={styles.counterValue}>{partnerCount}</Text>
+                                            <Text style={styles.counterLabel}>Partner(s)</Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            style={styles.counterBtn}
+                                            onPress={() => setPartnerCount(Math.min(5, partnerCount + 1))}
+                                        >
+                                            <AppIcon name="add" size={20} color={Colors.textPrimary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            </View>
+
+                            <AppButton
+                                title={applying ? "Applying..." : "Submit Application"}
+                                loading={applying}
+                                onPress={() => handleApply()}
+                                style={styles.submitBtn}
+                                disabled={!selectedSkill && (user?.skills || []).length > 0}
+                            />
 
                             <TouchableOpacity style={styles.closeBtn} onPress={() => setShowSkillModal(false)}>
-                                <Text style={styles.closeBtnText}>Cancel</Text>
+                                <Text style={styles.closeBtnText}>Abhi Nahi</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -673,11 +745,24 @@ const styles = StyleSheet.create({
     modalContent: { backgroundColor: Colors.white, borderRadius: 20, padding: 20 },
     modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4, textAlign: 'center' },
     modalSubTitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 20, textAlign: 'center' },
-    skillItem: { padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    skillItemDisabled: { backgroundColor: '#F8FAFC', borderColor: '#F1F5F9' },
-    skillItemText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-    skillItemTextDisabled: { color: Colors.textLight },
-    alreadyAppliedLabel: { fontSize: 10, color: Colors.primary, fontWeight: 'bold' },
+    divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 16 },
+    rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    modalSection: { marginBottom: 8 },
+    modalLabel: { fontSize: 16, fontWeight: 'bold', color: Colors.textPrimary },
+    modalSubLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+    skillList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    skillChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+    skillChipSelected: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary },
+    skillChipDisabled: { opacity: 0.5, backgroundColor: '#F1F5F9' },
+    skillChipText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
+    skillChipTextSelected: { color: Colors.primary, fontWeight: 'bold' },
+    skillChipTextDisabled: { color: Colors.textLight },
+    partnerCounter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, marginTop: 16, backgroundColor: '#F8FAFC', padding: 12, borderRadius: 16 },
+    counterBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.white, justifyContent: 'center', alignItems: 'center', elevation: 1 },
+    counterValueBox: { alignItems: 'center' },
+    counterValue: { fontSize: 20, fontWeight: 'bold', color: Colors.primary },
+    counterLabel: { fontSize: 10, color: Colors.textSecondary, textTransform: 'uppercase' },
+    submitBtn: { marginTop: 24, borderRadius: 12 },
     closeBtn: { marginTop: 10, padding: 12, alignItems: 'center' },
     closeBtnText: { color: Colors.textSecondary, fontWeight: 'bold' },
     rejectionDetailBox: {

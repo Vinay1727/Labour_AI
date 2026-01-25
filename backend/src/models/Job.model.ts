@@ -5,6 +5,8 @@ export interface IApplication {
     appliedSkill: string;
     status: 'pending' | 'approved' | 'rejected';
     appliedAt: Date;
+    hasPartner?: boolean;
+    partnerCount?: number;
 }
 
 export interface ISkillRequirement {
@@ -76,7 +78,9 @@ const JobSchema: Schema = new Schema({
         labourId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         appliedSkill: { type: String, required: true },
         status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-        appliedAt: { type: Date, default: Date.now }
+        appliedAt: { type: Date, default: Date.now },
+        hasPartner: { type: Boolean, default: false },
+        partnerCount: { type: Number, default: 0 }
     }]
 }, {
     timestamps: true,

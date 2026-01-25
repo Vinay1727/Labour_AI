@@ -62,8 +62,13 @@ export default function JobApplicationsScreen({ route, navigation }: any) {
                     <View style={styles.info}>
                         <Text style={styles.labourName}>{labour.name}</Text>
                         <View style={styles.skillRow}>
-                            <Text style={styles.skillLabel}>Applied as: </Text>
                             <Text style={styles.skillValue}>{appliedSkill}</Text>
+                            {item.hasPartner && (
+                                <View style={styles.teamTag}>
+                                    <AppIcon name="people" size={12} color={Colors.white} />
+                                    <Text style={styles.teamTagText}>Team: 1 + {item.partnerCount}</Text>
+                                </View>
+                            )}
                         </View>
                         <View style={styles.locationRow}>
                             <AppIcon name="location-outline" size={14} color={Colors.textSecondary} />
@@ -323,5 +328,20 @@ const styles = StyleSheet.create({
     emptyText: {
         marginTop: 16,
         color: Colors.textSecondary,
+    },
+    teamTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.primary,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        gap: 4,
+        marginLeft: 8,
+    },
+    teamTagText: {
+        color: Colors.white,
+        fontSize: 10,
+        fontWeight: 'bold',
     }
 });
