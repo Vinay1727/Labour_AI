@@ -12,6 +12,7 @@ import reviewRoutes from './routes/review.routes';
 import searchRoutes from './routes/search.routes';
 import messageRoutes from './routes/message.routes';
 import notificationRoutes from './routes/notification.routes';
+import adminRoutes from './routes/admin.routes';
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Catch-all for debugging 404s
 app.use('*', (req, res) => {
