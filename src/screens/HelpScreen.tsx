@@ -12,19 +12,19 @@ export default function HelpScreen() {
     const { t } = useTranslation();
 
     const handleCall = () => {
-        Linking.openURL('tel:+919876543210').catch(() => {
+        Linking.openURL('tel:+919617271725').catch(() => {
             Alert.alert('Error', 'Unable to open phone dialer');
         });
     };
 
     const handleEmail = () => {
-        Linking.openURL('mailto:support@labourchowk.ai').catch(() => {
+        Linking.openURL('mailto:vvinaybadnoriya@gmail.com').catch(() => {
             Alert.alert('Error', 'Unable to open email app');
         });
     };
 
     const handleWhatsApp = () => {
-        Linking.openURL('whatsapp://send?phone=919876543210&text=Hi, I need help with Labour Chowk app').catch(() => {
+        Linking.openURL('whatsapp://send?phone=919617271725&text=Hi, I need help with Labour Chowk app').catch(() => {
             Alert.alert('Error', 'WhatsApp is not installed');
         });
     };
