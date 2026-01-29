@@ -35,15 +35,17 @@ export default function HelpScreen() {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <AppIcon name="arrow-back" size={24} color={Colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.title}>{t('help_support' as any)}</Text>
-                <View style={{ width: 40 }} />
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>{t('help_support' as any)}</Text>
+                </View>
+                <View style={styles.headerSpacer} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.heroSection}>
                     <AppIcon name="help-buoy-outline" size={80} color={Colors.primary} />
-                    <Text style={styles.heroTitle}>Kisse baat karni hai?</Text>
-                    <Text style={styles.heroSub}>Hum apki poori madat karenge.</Text>
+                    <Text style={styles.heroTitle}>{t('help_hero_title' as any)}</Text>
+                    <Text style={styles.heroSub}>{t('help_hero_sub' as any)}</Text>
                 </View>
 
                 <View style={styles.contactOptions}>
@@ -52,8 +54,8 @@ export default function HelpScreen() {
                             <AppIcon name="logo-whatsapp" size={24} color={Colors.white} />
                         </View>
                         <View style={styles.optionInfo}>
-                            <Text style={styles.optionTitle}>WhatsApp karein</Text>
-                            <Text style={styles.optionSub}>Sabse tej kaam hota hai</Text>
+                            <Text style={styles.optionTitle}>{t('help_whatsapp_title' as any)}</Text>
+                            <Text style={styles.optionSub}>{t('help_whatsapp_sub' as any)}</Text>
                         </View>
                         <AppIcon name="chevron-forward" size={20} color={Colors.textTertiary || '#94A3B8'} />
                     </TouchableOpacity>
@@ -63,8 +65,8 @@ export default function HelpScreen() {
                             <AppIcon name="call" size={24} color={Colors.white} />
                         </View>
                         <View style={styles.optionInfo}>
-                            <Text style={styles.optionTitle}>Direct Call</Text>
-                            <Text style={styles.optionSub}>Subah 9 se Shaam 6 tak</Text>
+                            <Text style={styles.optionTitle}>{t('help_call_title' as any)}</Text>
+                            <Text style={styles.optionSub}>{t('help_call_sub' as any)}</Text>
                         </View>
                         <AppIcon name="chevron-forward" size={20} color={Colors.textTertiary || '#94A3B8'} />
                     </TouchableOpacity>
@@ -74,29 +76,29 @@ export default function HelpScreen() {
                             <AppIcon name="mail" size={24} color={Colors.white} />
                         </View>
                         <View style={styles.optionInfo}>
-                            <Text style={styles.optionTitle}>Email Bhejein</Text>
-                            <Text style={styles.optionSub}>Grievance aur details ke liye</Text>
+                            <Text style={styles.optionTitle}>{t('help_email_title' as any)}</Text>
+                            <Text style={styles.optionSub}>{t('help_email_sub' as any)}</Text>
                         </View>
                         <AppIcon name="chevron-forward" size={20} color={Colors.textTertiary || '#94A3B8'} />
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.faqSection}>
-                    <Text style={styles.faqHeader}>Common Sawaal (FAQ)</Text>
+                    <Text style={styles.faqHeader}>{t('faq_header' as any)}</Text>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>Kaam kaise milega?</Text>
-                        <Text style={styles.faqAnswer}>Apni profile poori karein aur paas ke 'Nearby Work' area mein apply karein.</Text>
+                        <Text style={styles.faqQuestion}>{t('faq_q1' as any)}</Text>
+                        <Text style={styles.faqAnswer}>{t('faq_a1' as any)}</Text>
                     </View>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>Paisa kab milega?</Text>
-                        <Text style={styles.faqAnswer}>Kaam khatam hone par contractor aapko cash ya UPI se pay karega. Deal khatam hote hi rating zaroor dein.</Text>
+                        <Text style={styles.faqQuestion}>{t('faq_q2' as any)}</Text>
+                        <Text style={styles.faqAnswer}>{t('faq_a2' as any)}</Text>
                     </View>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>Attendance lagana kyun zaruri hai?</Text>
-                        <Text style={styles.faqAnswer}>Attendance se contractor ka bharosa badhta hai aur aapki success rate upar jaati hai.</Text>
+                        <Text style={styles.faqQuestion}>{t('faq_q3' as any)}</Text>
+                        <Text style={styles.faqAnswer}>{t('faq_a3' as any)}</Text>
                     </View>
                 </View>
             </ScrollView>
@@ -121,10 +123,17 @@ const styles = StyleSheet.create({
     backBtn: {
         padding: 8,
     },
+    titleContainer: {
+        flex: 1,
+        alignItems: 'center',
+    },
     title: {
         fontSize: 18,
         fontWeight: 'bold',
         color: Colors.textPrimary,
+    },
+    headerSpacer: {
+        width: 40,
     },
     content: {
         paddingBottom: 40,

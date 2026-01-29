@@ -17,6 +17,7 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import api from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslation } from '../context/LanguageContext';
 
 interface Notification {
     _id: string;
@@ -46,6 +47,7 @@ const getIcon = (type: string) => {
 export default function NotificationScreen() {
     const navigation = useNavigation<any>();
     const isFocused = useIsFocused();
+    const { t } = useTranslation();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -154,10 +156,10 @@ export default function NotificationScreen() {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <AppIcon name="arrow-back" size={24} color={Colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Notifications</Text>
+                <Text style={styles.headerTitle}>{t('notifications_header' as any)}</Text>
                 {notifications.some(n => !n.isRead) ? (
                     <TouchableOpacity onPress={markAllRead}>
-                        <Text style={styles.markReadText}>Mark all read</Text>
+                        <Text style={styles.markReadText}>{t('mark_all_read' as any)}</Text>
                     </TouchableOpacity>
                 ) : <View style={{ width: 80 }} />}
             </View>
@@ -176,7 +178,7 @@ export default function NotificationScreen() {
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <AppIcon name="notifications-off-outline" size={60} color={Colors.border} />
-                            <Text style={styles.emptyText}>Abhi koi notification nahi hai</Text>
+                            <Text style={styles.emptyText}>{t('no_notifications' as any)}</Text>
                         </View>
                     }
                 />

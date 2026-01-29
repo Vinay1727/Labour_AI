@@ -81,11 +81,11 @@ export default function EditProfileScreen({ navigation }: any) {
                 } as any);
             }
 
-            Alert.alert("Success", "Profile updated successfully", [
+            Alert.alert(t('success'), t('profile_updated_success' as any), [
                 { text: "OK", onPress: () => navigation.goBack() }
             ]);
         } catch (error) {
-            Alert.alert("Error", "Failed to update profile. Please try again.");
+            Alert.alert(t('error'), t('failed_to_update_profile' as any));
         } finally {
             setLoading(false);
         }
@@ -107,9 +107,9 @@ export default function EditProfileScreen({ navigation }: any) {
             const res = await requestPhoneChange(newPhone);
             setShowOtpModal(true);
             // In dev mode, OTP is 1234
-            Alert.alert("OTP Sent", `Verification code sent to ${newPhone}.\n(Use 1234 for testing)`);
+            Alert.alert("OTP Sent", `${t('enter_4_digit_code' as any)} ${newPhone}.\n(Use 1234 for testing)`);
         } catch (error: any) {
-            Alert.alert("Error", error);
+            Alert.alert(t('error'), error);
         } finally {
             setLoading(false);
         }
@@ -174,20 +174,20 @@ export default function EditProfileScreen({ navigation }: any) {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>{t('phone_fixed')}</Text>
                             <View style={[styles.input, styles.disabledInput]}>
-                                <Text style={styles.disabledInputText}>{user?.phone || '+91 9876543210'}</Text>
+                                <Text style={styles.disabledInputText}>{user?.phone || '+91'}</Text>
                                 <AppIcon name="lock-closed" size={16} color={Colors.textSecondary} />
                             </View>
-                            <Text style={styles.helperText}>Changing primary mobile requires verification</Text>
+                            <Text style={styles.helperText}>{t('phone_change_helper' as any)}</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>New Mobile Number</Text>
+                            <Text style={styles.label}>{t('new_mobile_number' as any)}</Text>
                             <View style={styles.phoneInputRow}>
                                 <TextInput
                                     style={[styles.input, { flex: 1 }]}
                                     value={newPhone}
                                     onChangeText={setNewPhone}
-                                    placeholder="Enter new number"
+                                    placeholder={t('enter_new_mobile' as any)}
                                     keyboardType="phone-pad"
                                     maxLength={10}
                                 />
@@ -196,7 +196,7 @@ export default function EditProfileScreen({ navigation }: any) {
                                     onPress={handleInitiatePhoneChange}
                                     disabled={!newPhone || newPhone.length < 10 || loading}
                                 >
-                                    <Text style={styles.changeBtnText}>Change</Text>
+                                    <Text style={styles.changeBtnText}>{t('change' as any)}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -298,8 +298,8 @@ export default function EditProfileScreen({ navigation }: any) {
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Verify New Number</Text>
-                        <Text style={styles.modalSubTitle}>Enter the 4-digit code sent to {newPhone}</Text>
+                        <Text style={styles.modalTitle}>{t('verify_new_number' as any)}</Text>
+                        <Text style={styles.modalSubTitle}>{t('enter_4_digit_code' as any)} {newPhone}</Text>
 
                         <TextInput
                             style={styles.otpInput}
@@ -330,7 +330,7 @@ export default function EditProfileScreen({ navigation }: any) {
                                 {verifying ? (
                                     <ActivityIndicator color="white" />
                                 ) : (
-                                    <Text style={styles.verifyBtnText}>Verify & Update</Text>
+                                    <Text style={styles.verifyBtnText}>{t('verify_and_update' as any)}</Text>
                                 )}
                             </TouchableOpacity>
                         </View>

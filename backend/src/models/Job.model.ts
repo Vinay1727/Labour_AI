@@ -93,5 +93,8 @@ JobSchema.virtual('id').get(function (this: any) {
 });
 
 JobSchema.index({ location: '2dsphere' });
+JobSchema.index({ contractorId: 1, status: 1 });
+JobSchema.index({ status: 1 });
+
 
 export default mongoose.model<IJob>('Job', JobSchema);

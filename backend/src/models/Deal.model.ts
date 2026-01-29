@@ -57,4 +57,10 @@ DealSchema.virtual('id').get(function (this: any) {
     return this._id.toHexString();
 });
 
+DealSchema.index({ jobId: 1 });
+DealSchema.index({ contractorId: 1, status: 1 });
+DealSchema.index({ labourId: 1, status: 1 });
+DealSchema.index({ status: 1 });
+
 export default mongoose.model<IDeal>('Deal', DealSchema);
+

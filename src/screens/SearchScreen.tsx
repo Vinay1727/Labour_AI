@@ -309,6 +309,6 @@ const styles = StyleSheet.create({
 
     emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 80, paddingHorizontal: 40 },
     emptyTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.textPrimary, marginTop: 20, textAlign: 'center' },
-    fab: { position: 'absolute', bottom: 30, left: 30, right: 30, backgroundColor: Colors.secondary, height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 10 },
+    fab: { position: 'absolute', bottom: 90, left: 30, right: 30, backgroundColor: Colors.secondary, height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 10 },
     fabText: { color: Colors.white, fontWeight: '900', fontSize: 16 }
 });

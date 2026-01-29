@@ -6,9 +6,11 @@ import { Colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { AppButton } from '../components/common/AppButton';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function RoleSelectionScreen({ navigation }: any) {
     const { updateRole } = useAuth();
+    const { t } = useTranslation();
     const [selectedRole, setSelectedRole] = useState<'contractor' | 'labour' | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -33,8 +35,7 @@ export default function RoleSelectionScreen({ navigation }: any) {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>आप क्या करना चाहते हैं?</Text>
-                    <Text style={styles.subTitle}>What do you want to do?</Text>
+                    <Text style={styles.title}>{t('what_to_do' as any)}</Text>
                 </View>
 
                 <View style={styles.cardsContainer}>
@@ -51,9 +52,9 @@ export default function RoleSelectionScreen({ navigation }: any) {
                             <Text style={styles.roleIcon}>🏗️</Text>
                         </View>
                         <View style={styles.cardTextContent}>
-                            <Text style={styles.roleTitle}>I want to give work</Text>
-                            <Text style={styles.roleHindi}>मजदूर चाहिए</Text>
-                            <Text style={styles.roleDesc}>Post jobs and hire nearby workers for your projects.</Text>
+                            <Text style={styles.roleTitle}>{t('give_work_title' as any)}</Text>
+                            <Text style={styles.roleHindi}>{t('give_work_hindi' as any)}</Text>
+                            <Text style={styles.roleDesc}>{t('give_work_desc' as any)}</Text>
                         </View>
                         {selectedRole === 'contractor' && <View style={styles.radioActive} />}
                     </TouchableOpacity>
@@ -71,9 +72,9 @@ export default function RoleSelectionScreen({ navigation }: any) {
                             <Text style={styles.roleIcon}>👷</Text>
                         </View>
                         <View style={styles.cardTextContent}>
-                            <Text style={styles.roleTitle}>I want to work</Text>
-                            <Text style={styles.roleHindi}>काम चाहिए</Text>
-                            <Text style={styles.roleDesc}>Find nearby work and earn daily wages easily.</Text>
+                            <Text style={styles.roleTitle}>{t('get_work_title' as any)}</Text>
+                            <Text style={styles.roleHindi}>{t('get_work_hindi' as any)}</Text>
+                            <Text style={styles.roleDesc}>{t('get_work_desc' as any)}</Text>
                         </View>
                         {selectedRole === 'labour' && <View style={styles.radioActive} />}
                     </TouchableOpacity>
@@ -81,7 +82,7 @@ export default function RoleSelectionScreen({ navigation }: any) {
 
                 <View style={styles.footer}>
                     <AppButton
-                        title="Start / शुरू करें"
+                        title={t('start' as any)}
                         onPress={handleConfirm}
                         disabled={!selectedRole}
                         loading={isLoading}

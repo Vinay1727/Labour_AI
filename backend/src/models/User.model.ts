@@ -55,5 +55,8 @@ const UserSchema: Schema = new Schema({
 });
 
 UserSchema.index({ location: '2dsphere' });
+UserSchema.index({ role: 1 });
+UserSchema.index({ phone: 1 }); // phone is unique but explicit index doesn't hurt, though unique already creates one.
+
 
 export default mongoose.model<IUser>('User', UserSchema);

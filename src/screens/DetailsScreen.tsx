@@ -164,7 +164,7 @@ export default function DetailsScreen({ route, navigation }: any) {
                     </View>
                     <View style={styles.headerInfo}>
                         <View style={styles.nameRow}>
-                            <Text style={styles.profileName}>{data.name}</Text>
+                            <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">{data.name}</Text>
                             <AppIcon name="shield-checkmark" size={20} color={Colors.primary} />
                         </View>
 
@@ -667,7 +667,10 @@ export default function DetailsScreen({ route, navigation }: any) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <AppIcon name="arrow-back" size={24} color={Colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{itemType === 'labour' ? 'Labour Profile' : 'Kaam ki Detail'}</Text>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={styles.headerTitle}>{itemType === 'labour' ? 'Labour Profile' : 'Kaam ki Detail'}</Text>
+                </View>
+                <View style={{ width: 40 }} />
             </View>
             {!data ? (
                 <View style={styles.loadingContainer}>
@@ -686,6 +689,7 @@ const styles = StyleSheet.create({
     loadingText: { marginTop: 10, color: Colors.textSecondary },
     appHeader: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     backBtn: { padding: 4, marginRight: spacing.sm },
+    headerTitleContainer: { flex: 1, alignItems: 'center' },
     headerTitle: { fontSize: 18, fontWeight: 'bold', fontFamily: 'sans-serif-condensed', textTransform: 'uppercase' },
     scrollContent: { padding: spacing.md, paddingBottom: 40 },
     profileHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.white, padding: spacing.lg, borderRadius: 20, marginBottom: spacing.md, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
@@ -693,7 +697,7 @@ const styles = StyleSheet.create({
     avatarTextLarge: { fontSize: 28, fontWeight: 'bold', color: Colors.primary },
     headerInfo: { flex: 1 },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    profileName: { fontSize: 20, fontWeight: 'bold', color: Colors.textPrimary },
+    profileName: { fontSize: 20, fontWeight: 'bold', color: Colors.textPrimary, flex: 1 },
     rankBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginTop: 4, gap: 4 },
     rankText: { fontSize: 11, fontWeight: 'bold' },
     profileSkill: { fontSize: 13, color: Colors.textSecondary, marginTop: 4 },

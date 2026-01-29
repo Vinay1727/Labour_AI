@@ -19,7 +19,7 @@ export default function ProfileScreen() {
 
     // Helper: Format Location
     const formatLocation = (loc: any) => {
-        if (!loc) return t('no_location_added' as any) || 'Location not set';
+        if (!loc) return t('location_not_set' as any) || 'Location not set';
         if (typeof loc === 'string') return loc;
         return `${loc.area || ''}, ${loc.city || ''}`.replace(/^, /, '');
     };
@@ -31,7 +31,7 @@ export default function ProfileScreen() {
         roleLabel: isContractor ? t('contractor') : t('labour'),
         location: formatLocation(user?.location),
         phone: user?.phone || '',
-        skill: user?.skills?.[0] || (user?.isSkilled ? 'Skilled Worker' : 'Helper'),
+        skill: user?.skills?.[0] || (user?.isSkilled ? t('skilled_worker' as any) : t('helper_worker' as any)),
         experience: user?.experience || '0',
         rating: 4.8, // Mock or Real
         jobsCompleted: 12, // Mock or Real
@@ -108,7 +108,7 @@ export default function ProfileScreen() {
                         <StatBox
                             icon="star"
                             color="#F59E0B"
-                            value={userData.isNewUser ? "New" : userData.rating}
+                            value={userData.isNewUser ? t('new_badge' as any) : userData.rating}
                             label={t('rating')}
                         />
                         <View style={styles.statDivider} />
@@ -137,13 +137,13 @@ export default function ProfileScreen() {
                 {/* BADGES SECTION */}
                 <View style={styles.badgesGrid}>
                     {userData.isNewUser && (
-                        <Badge label="New Member" icon="leaf" color="#10B981" bg="#ECFDF5" />
+                        <Badge label={t('new_member' as any)} icon="leaf" color="#10B981" bg="#ECFDF5" />
                     )}
                     {userData.isVerified && (
-                        <Badge label="Phone Verified" icon="shield-checkmark" color="#3B82F6" bg="#EFF6FF" />
+                        <Badge label={t('phone_verified' as any)} icon="shield-checkmark" color="#3B82F6" bg="#EFF6FF" />
                     )}
-                    <Badge label="On-Time Worker" icon="timer" color="#F59E0B" bg="#FFFBEB" />
-                    <Badge label="Trusted" icon="ribbon" color="#8B5CF6" bg="#F5F3FF" />
+                    <Badge label={t('on_time_worker' as any)} icon="timer" color="#F59E0B" bg="#FFFBEB" />
+                    <Badge label={t('trusted' as any)} icon="ribbon" color="#8B5CF6" bg="#F5F3FF" />
                 </View>
 
                 {/* BASIC INFO SECTION */}
