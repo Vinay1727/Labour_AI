@@ -1,6 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
+import compression from 'compression';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/db';
 
 import authRoutes from './routes/auth.routes';
@@ -16,17 +21,83 @@ import adminRoutes from './routes/admin.routes';
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// 1. GLOBAL MIDDLEWARES
+
+// Rate Limiting - General API
+const limiter = rateLimit({
+    max: 200,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    message: 'Too many requests from this IP, please try again in 15 minutes!'
+});
+app.use('/api', limiter);
+
+// AUTH Rate Limiting - Very strict for login/OTP
+const authLimiter = rateLimit({
+    max: 5, // 5 attempts
+    windowMs: 60 * 60 * 1000, // per hour
+    message: 'Too many login attempts. Please try again after an hour.'
+});
+app.use('/api/auth/request-otp', authLimiter);
+app.use('/api/auth/verify-otp', authLimiter);
+
+// Secure HTTP headers
 app.use(helmet({
     crossOriginResourcePolicy: false,
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "blob:", "https://*"],
+            connectSrc: ["'self'", "https://*", "http://*"],
+        },
+    },
 }));
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    next();
-});
-app.use(express.json());
+
+// Development logging
+if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+} else {
+    app.use(morgan('combined'));
+}
+
+// CORS - Restrict to specific origins in production
+const allowedOrigins = [
+    'http://localhost:3000', // Web testing
+    'http://localhost:19006', // Expo Web
+    // Add your production domain here
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
+}));
+
+// Body parser, reading data from body into req.body
+app.use(express.json({ limit: '10kb' })); // Limit body size to 10kb for security
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Prevent parameter pollution
+app.use(hpp());
+
+// Compression for faster responses
+app.use(compression());
+
+
+
+
+// Static files
 app.use('/uploads', express.static('uploads'));
+
 
 // Database connection
 // Database connection moved to server.ts
@@ -50,7 +121,26 @@ app.use('/api/admin', adminRoutes);
 // Catch-all for debugging 404s
 app.use('*', (req, res) => {
     console.log(`[404] Route not found: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
+    res.status(404).json({
+        success: false,
+        message: `Route not found: ${req.originalUrl}`
+    });
 });
+
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('SERVER ERROR:', err);
+
+    const statusCode = err.statusCode || 500;
+    const status = err.status || 'error';
+
+    res.status(statusCode).json({
+        success: false,
+        status: status,
+        message: err.message || 'Internal Server Error',
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
+
 
 export default app;

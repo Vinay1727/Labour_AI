@@ -62,7 +62,7 @@ export default function LanguageSelectionScreen({ route, navigation }: any) {
 
                 <View style={styles.content}>
                     <Text style={styles.title}>{t('choose_language')}</Text>
-                    <Text style={styles.subTitle}>भाषा चुनें</Text>
+                    <Text style={styles.subTitle}>{t('choose_language_sub' as any)}</Text>
 
                     <View style={styles.list}>
                         {languages.map((lang) => (

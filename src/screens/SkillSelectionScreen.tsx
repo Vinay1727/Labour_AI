@@ -7,6 +7,7 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { AppButton } from '../components/common/AppButton';
 import { AppIcon } from '../components/common/AppIcon';
+import { useTranslation } from '../context/LanguageContext';
 
 const SKILLS = [
     { id: 'mistri', name: 'Mistri / Mason (मिस्त्री)', icon: 'construct' },
@@ -15,12 +16,13 @@ const SKILLS = [
     { id: 'electrician', name: 'Electrician (इलेक्ट्रीशियन)', icon: 'flash' },
     { id: 'carpenter', name: 'Carpenter (बढ़ई)', icon: 'hammer' },
     { id: 'welder', name: 'Welder (वेल्डर)', icon: 'flame' },
-    { id: 'tile_worker', name: 'Tile Worker (टाइल्स कारीगर)', icon: 'grid' },
+    { id: 'tile_mason', name: 'Tile Worker (टाइल्स कारीगर)', icon: 'grid' },
     { id: 'fabricator', name: 'Fabricator (फैब्रिकेटर)', icon: 'settings' },
 ];
 
 export default function SkillSelectionScreen() {
     const { updateProfile } = useAuth();
+    const { t } = useTranslation();
     const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -34,7 +36,7 @@ export default function SkillSelectionScreen() {
 
     const handleConfirm = async () => {
         if (selectedSkills.length === 0) {
-            Alert.alert('Selection Required', 'Please select at least one skill.');
+            Alert.alert(t('selection_required' as any), t('please_rate' as any));
             return;
         }
 
@@ -72,7 +74,7 @@ export default function SkillSelectionScreen() {
                     />
                 </View>
                 <Text style={[styles.skillName, isSelected && styles.selectedSkillName]}>
-                    {item.name}
+                    {t(item.id as any)}
                 </Text>
                 {isSelected && (
                     <View style={styles.checkMark}>
@@ -86,8 +88,8 @@ export default function SkillSelectionScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>अपनी स्किल्स चुनें</Text>
-                <Text style={styles.subTitle}>Select your skills (Multiple allowed)</Text>
+                <Text style={styles.title}>{t('select_skills' as any)}</Text>
+                <Text style={styles.subTitle}>{t('multiple_allowed' as any)}</Text>
             </View>
 
             <FlatList
@@ -101,10 +103,10 @@ export default function SkillSelectionScreen() {
 
             <View style={styles.footer}>
                 <Text style={styles.selectedCount}>
-                    {selectedSkills.length} skills selected
+                    {selectedSkills.length} {t('skills_selected' as any)}
                 </Text>
                 <AppButton
-                    title="Finish Setup / सेटअप पूरा करें"
+                    title={t('finish_setup' as any)}
                     onPress={handleConfirm}
                     loading={isLoading}
                     disabled={selectedSkills.length === 0}

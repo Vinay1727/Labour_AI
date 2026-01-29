@@ -28,7 +28,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
         // Special Case: Completion Rejected
         if (deal.completionStatus === 'rejected' && deal.status === 'active') {
             return {
-                label: 'Rejected',
+                label: t('rejected'),
                 color: Colors.error,
                 bg: '#FEF2F2',
                 icon: 'close-circle-outline'
@@ -111,7 +111,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                 <View style={styles.rejectionBox}>
                     <View style={styles.rejectionHeader}>
                         <AppIcon name="warning-outline" size={16} color={Colors.error} />
-                        <Text style={styles.rejectionTitle}>Kaam check kariye (Rejected)</Text>
+                        <Text style={styles.rejectionTitle}>{t('rejected')}</Text>
                     </View>
                     <Text style={styles.rejectionText}>
                         Contractor feedback: {deal.rejectionHistory[deal.rejectionHistory.length - 1].reasonCodes.join(', ')}
@@ -163,7 +163,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                             onPress={() => onUpdateStatus('completion_requested')}
                         >
                             <AppIcon name="flag" size={18} color={Colors.white} />
-                            <Text style={styles.actionButtonText}>Finish</Text>
+                            <Text style={styles.actionButtonText}>{t('mark_done')}</Text>
                         </TouchableOpacity>
                     )}
 
@@ -198,7 +198,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                             onPress={() => onUpdateStatus('completion_requested')}
                         >
                             <AppIcon name="hammer-outline" size={18} color={Colors.white} />
-                            <Text style={styles.actionButtonText}>Resubmit</Text>
+                            <Text style={styles.actionButtonText}>{t('apply')}</Text>
                         </TouchableOpacity>
                     )}
 
@@ -264,7 +264,7 @@ export const DealCard = ({ deal, role, onViewDetails, onUpdateStatus, onRatePres
                                 onPress={onRatePress}
                             >
                                 <AppIcon name="star" size={18} color={Colors.white} />
-                                <Text style={styles.actionButtonText}>Rate</Text>
+                                <Text style={styles.actionButtonText}>{t('rate')}</Text>
                             </TouchableOpacity>
                         )
                     )}

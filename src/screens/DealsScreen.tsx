@@ -66,7 +66,7 @@ export default function DealsScreen() {
             });
 
             if (res.data.success) {
-                Alert.alert(t('success' as any), `Approved for ${selectedSkill}`);
+                Alert.alert(t('success' as any), `${t('approve' as any)} for ${selectedSkill}`);
                 setShowSkillModal(false);
                 fetchDeals();
             }
@@ -124,7 +124,7 @@ export default function DealsScreen() {
                                     setLoading(true);
                                     const res = await api.post(`deals/${dealId}/cancel`, { reason: 'Cancelled by user' });
                                     if (res.data.success) {
-                                        Alert.alert(t('success' as any), 'Job cancelled');
+                                        Alert.alert(t('success' as any), t('cancel_job' as any));
                                         fetchDeals();
                                     }
                                 } catch (err: any) {

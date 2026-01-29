@@ -115,7 +115,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
 
     const pickImage = async () => {
         if (images.length >= 5) {
-            Alert.alert('Limit Reached', 'You can only upload up to 5 images.');
+            Alert.alert(t('limit_reached' as any), t('images_limit_msg' as any));
             return;
         }
 
@@ -142,7 +142,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
         try {
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Denied', 'Permission to access location was denied');
+                Alert.alert(t('permission_denied' as any), t('location_permission_msg' as any));
                 setIsDetectingLocation(false);
                 return;
             }
@@ -162,7 +162,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                 });
             }
         } catch (error) {
-            Alert.alert('Error', 'Could not detect location');
+            Alert.alert(t('error'), t('location_permission_msg' as any));
         } finally {
             setIsDetectingLocation(false);
         }
@@ -283,11 +283,11 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                 },
             });
             console.log('Post Work Response:', response.data);
-            Alert.alert('Success', isEditMode ? 'Work updated successfully!' : 'Work posted successfully!');
+            Alert.alert(t('success'), isEditMode ? t('work_updated_success' as any) : t('work_posted_success' as any));
             navigation.goBack();
         } catch (error: any) {
             console.error('Post Work Error:', error.response?.data || error.message);
-            Alert.alert('Error', error.response?.data?.message || 'Failed to post work');
+            Alert.alert(t('error'), error.response?.data?.message || 'Failed to post work');
         } finally {
             setIsLoading(false);
         }
@@ -324,8 +324,8 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                         <AppIcon name="arrow-back" size={24} color={Colors.textPrimary} />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.headerTitle}>{isEditMode ? 'Edit Work' : t('post_new_work')}</Text>
-                        <Text style={styles.headerSubtitle}>{isEditMode ? 'Update your job details' : t('tell_us_what_work')}</Text>
+                        <Text style={styles.headerTitle}>{isEditMode ? t('edit_work' as any) : t('post_new_work')}</Text>
+                        <Text style={styles.headerSubtitle}>{isEditMode ? t('update_job_details' as any) : t('tell_us_what_work')}</Text>
                     </View>
                 </View>
 
@@ -335,7 +335,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.sectionTitle}>{t('select_work_type')}</Text>
                             {selectedSkills.length > 0 && (
-                                <Text style={styles.selectedCountText}>{selectedSkills.length} selected</Text>
+                                <Text style={styles.selectedCountText}>{selectedSkills.length} {t('applied')}</Text>
                             )}
                         </View>
 
@@ -343,7 +343,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                             <AppIcon name="search-outline" size={20} color={Colors.textSecondary} />
                             <TextInput
                                 style={styles.searchInput}
-                                placeholder="Search skills (e.g. Painter, Driver...)"
+                                placeholder={t('search_skills_placeholder' as any)}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
                             />
@@ -381,7 +381,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                             ))}
                             {filteredWorkTypes.length === 0 && (
                                 <View style={styles.noResultContainer}>
-                                    <Text style={styles.noResultText}>No skills found for "{searchQuery}"</Text>
+                                    <Text style={styles.noResultText}>{t('no_skills_found' as any)} for "{searchQuery}"</Text>
                                 </View>
                             )}
                         </View>
@@ -406,7 +406,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
 
                                         {/* Required Workers Section */}
                                         <View style={styles.skillSection}>
-                                            <Text style={styles.configLabel}>Required Workers</Text>
+                                            <Text style={styles.configLabel}>{t('required_workers' as any)}</Text>
                                             <Stepper
                                                 value={skill.count}
                                                 onChange={(val: number) => updateSkillData(skill.id, { count: val })}
@@ -423,7 +423,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                                                     <Text style={styles.skillCurrencyPrefix}>₹</Text>
                                                     <TextInput
                                                         style={styles.skillPaymentInputFull}
-                                                        placeholder="Enter amount"
+                                                        placeholder={t('payment_amount_placeholder')}
                                                         keyboardType="numeric"
                                                         value={skill.payment.amount}
                                                         onChangeText={(val) => updateSkillPayment(skill.id, { amount: val })}
@@ -586,7 +586,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                             </View>
                             <View style={styles.locationInfo}>
                                 <Text style={styles.locationText} numberOfLines={2}>
-                                    {location ? location.address : 'Detecting current location...'}
+                                    {location ? location.address : t('detecting_location' as any)}
                                 </Text>
                                 <Text style={styles.locationLink}>{t('edit_area')}</Text>
                             </View>
@@ -598,7 +598,7 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
 
                 <View style={styles.footer}>
                     <AppButton
-                        title={isEditMode ? 'Update Details' : t('post_work')}
+                        title={isEditMode ? t('update_details' as any) : t('post_work')}
                         onPress={handlePostWork}
                         disabled={!isFormValid()}
                         loading={isLoading}

@@ -115,7 +115,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.primaryCardText}>
                     <Text style={styles.primaryActionTitle}>{t('post_new_work')}</Text>
-                    <Text style={styles.primaryActionSub}>Naya kaam post karein</Text>
+                    <Text style={styles.primaryActionSub}>{t('naya_kaam_post_karein' as any)}</Text>
                 </View>
                 <AppIcon name="chevron-forward" size={24} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
@@ -125,7 +125,7 @@ export default function HomeScreen() {
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>{t('your_posted_jobs')}</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Deals')}>
-                        <Text style={styles.seeAllText}>Sab dekhein</Text>
+                        <Text style={styles.seeAllText}>{t('sab_dekhein' as any)}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -163,7 +163,7 @@ export default function HomeScreen() {
                                         styles.miniBadgeText,
                                         { color: (item.applications?.length || 0) > 0 ? "#D97706" : "#64748B" }
                                     ]}>
-                                        {item.applications?.length || 0} Applied
+                                        {item.applications?.length || 0} {t('applied')}
                                     </Text>
                                 </View>
                             </View>
@@ -190,14 +190,14 @@ export default function HomeScreen() {
                 {availableJobs.length === 0 && (
                     <View style={styles.emptySmall}>
                         <AppIcon name="document-text-outline" size={40} color={Colors.border} />
-                        <Text style={styles.emptyText}>Abhi koi kaam nahi hai</Text>
+                        <Text style={styles.emptyText}>{t('no_work_nearby')}</Text>
                     </View>
                 )}
             </View>
 
             <View style={styles.tipCard}>
                 <AppIcon name="information-circle-outline" size={20} color={Colors.primary} />
-                <Text style={styles.tipText}>Only nearby labour will see your request</Text>
+                <Text style={styles.tipText}>{t('only_nearby_labour_see' as any)}</Text>
             </View>
 
             <DeleteReasonModal
@@ -215,7 +215,7 @@ export default function HomeScreen() {
                     <Text style={styles.greeting}>{t('nearby_work_for_you')}</Text>
                     <View style={styles.locationIndicator}>
                         <AppIcon name="location-outline" size={16} color={Colors.primary} />
-                        <Text style={styles.locationLabel}>Aapke Paas ka Kaam</Text>
+                        <Text style={styles.locationLabel}>{t('available_near_you')}</Text>
                     </View>
                 </View>
                 <TouchableOpacity
@@ -260,7 +260,7 @@ export default function HomeScreen() {
                                 </View>
                                 <View style={styles.jobPriceCol}>
                                     <Text style={styles.jobPrice}>₹{item.paymentAmount}</Text>
-                                    <Text style={styles.perDayLabel}>Dihadi</Text>
+                                    <Text style={styles.perDayLabel}>{t('dihadi' as any)}</Text>
                                 </View>
                             </View>
 
@@ -273,7 +273,7 @@ export default function HomeScreen() {
                                             color={myApplication.status === 'approved' ? '#059669' : '#B45309'}
                                         />
                                         <Text style={[styles.statusInfoText, { color: myApplication.status === 'approved' ? '#059669' : '#B45309' }]}>
-                                            {myApplication.status === 'approved' ? 'Mili hai' : 'Apply kar diya he'}
+                                            {myApplication.status === 'approved' ? t('mili_hai' as any) : t('apply_kar_diya_he' as any)}
                                         </Text>
                                     </View>
                                 ) : (
@@ -282,7 +282,7 @@ export default function HomeScreen() {
                                         onPress={() => handleApply(item._id)}
                                     >
                                         <AppIcon name="hand-right-outline" size={18} color={Colors.white} />
-                                        <Text style={styles.quickApplyText}>Apply Karein</Text>
+                                        <Text style={styles.quickApplyText}>{t('apply')}</Text>
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity
@@ -300,8 +300,8 @@ export default function HomeScreen() {
                         <View style={styles.emptyIllustration}>
                             <AppIcon name="search-outline" size={80} color="#E2E8F0" />
                         </View>
-                        <Text style={styles.emptyText}>Abhi koi naya kaam nahi hai</Text>
-                        <Text style={styles.emptySubText}>Jaise hi kaam milega yahan dikhega</Text>
+                        <Text style={styles.emptyText}>{t('no_work_nearby')}</Text>
+                        <Text style={styles.emptySubText}>{t('no_deals_sub')}</Text>
                     </View>
                 }
             />

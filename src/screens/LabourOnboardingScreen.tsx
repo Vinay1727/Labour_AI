@@ -7,9 +7,11 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { AppButton } from '../components/common/AppButton';
 import { AppIcon } from '../components/common/AppIcon';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function LabourOnboardingScreen({ navigation }: any) {
     const { updateProfile } = useAuth();
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
 
     const handleChoice = async (isSkilled: boolean) => {
@@ -36,13 +38,11 @@ export default function LabourOnboardingScreen({ navigation }: any) {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>अपनी योग्यता बताएं</Text>
-                    <Text style={styles.subTitle}>Tell us about your skill</Text>
+                    <Text style={styles.title}>{t('tell_skill' as any)}</Text>
                 </View>
 
                 <View style={styles.questionContainer}>
-                    <Text style={styles.questionText}>क्या आप एक कुशल कारीगर हैं?</Text>
-                    <Text style={styles.questionSubText}>Are you a skilled worker?</Text>
+                    <Text style={styles.questionText}>{t('is_skilled_ कारीगर' as any)}</Text>
                 </View>
 
                 <View style={styles.optionsContainer}>
@@ -55,8 +55,8 @@ export default function LabourOnboardingScreen({ navigation }: any) {
                             <AppIcon name="star" size={32} color={Colors.white} />
                         </View>
                         <View style={styles.optionInfo}>
-                            <Text style={styles.optionTitle}>हाँ, मैं कुशल हूँ (Yes)</Text>
-                            <Text style={styles.optionDesc}>मिस्त्री, पेंटर, प्लंबर, इलेक्ट्रिशियन आदि (Mason, Painter, etc.)</Text>
+                            <Text style={styles.optionTitle}>{t('yes_skilled' as any)}</Text>
+                            <Text style={styles.optionDesc}>{t('skilled_examples' as any)}</Text>
                         </View>
                     </TouchableOpacity>
 
@@ -70,8 +70,8 @@ export default function LabourOnboardingScreen({ navigation }: any) {
                             <AppIcon name="people" size={32} color={Colors.white} />
                         </View>
                         <View style={styles.optionInfo}>
-                            <Text style={styles.optionTitle}>नहीं, मैं हेल्पर हूँ (No)</Text>
-                            <Text style={styles.optionDesc}>सामान्य मजदूरी/सहायक कार्य (General labour/Helper work)</Text>
+                            <Text style={styles.optionTitle}>{t('no_helper' as any)}</Text>
+                            <Text style={styles.optionDesc}>{t('helper_desc' as any)}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

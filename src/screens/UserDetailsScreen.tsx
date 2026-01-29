@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useTranslation } from '../context/LanguageContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
@@ -7,6 +8,7 @@ import { typography } from '../theme/typography';
 import { AppButton } from '../components/common/AppButton';
 
 export default function UserDetailsScreen({ navigation }: any) {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -32,17 +34,17 @@ export default function UserDetailsScreen({ navigation }: any) {
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
                             <Text style={styles.backArrow}>←</Text>
                         </TouchableOpacity>
-                        <Text style={styles.headerTitle}>Enter Details</Text>
+                        <Text style={styles.headerTitle}>{t('enter_details' as any)}</Text>
                     </View>
 
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Basic Info / बुनियादी जानकारी</Text>
+                        <Text style={styles.cardTitle}>{t('basic_info' as any)}</Text>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Full Name / पूरा नाम</Text>
+                            <Text style={styles.label}>{t('full_name')}</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Ex. Vinay Kumar"
+                                placeholder={t('ex_name' as any)}
                                 value={name}
                                 onChangeText={setName}
                                 placeholderTextColor={Colors.textSecondary}
@@ -50,12 +52,12 @@ export default function UserDetailsScreen({ navigation }: any) {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Mobile Number / मोबाइल नंबर</Text>
+                            <Text style={styles.label}>{t('phone')}</Text>
                             <View style={styles.phoneInputContainer}>
                                 <Text style={styles.countryCode}>+91</Text>
                                 <TextInput
                                     style={styles.phoneInput}
-                                    placeholder="10 digit number"
+                                    placeholder={t('enter_phone' as any)}
                                     keyboardType="phone-pad"
                                     maxLength={10}
                                     value={phone}
@@ -65,12 +67,12 @@ export default function UserDetailsScreen({ navigation }: any) {
                             </View>
                         </View>
 
-                        <Text style={styles.note}>We will send an OTP for verification.</Text>
+                        <Text style={styles.note}>{t('otp_note' as any)}</Text>
                     </View>
 
                     <View style={styles.footer}>
                         <AppButton
-                            title="Continue / आगे बढ़ें"
+                            title={t('continue')}
                             onPress={handleContinue}
                             disabled={isButtonDisabled}
                             loading={isLoading}
