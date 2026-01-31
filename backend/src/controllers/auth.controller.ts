@@ -9,11 +9,47 @@ export const requestOtp = async (req: Request, res: Response) => {
         const { phone } = req.body;
         console.log('OTP Request for:', phone);
 
-        const user = await User.findOne({ phone });
+        let user = await User.findOne({ phone });
+
+        // If user doesn't exist, we might need to create a temporary record or just store OTP
+        // Ideally we should have an OTP collection, but for now let's create a User stub if needed
+        // OR better: Only send OTP if we plan to register? No, we need OTP for reg too.
+        // Let's create the user if not exists with "isVerified: false"
+        if (!user) {
+            console.log('User not found, creating temporary for OTP...');
+            // We can't create fully without name/role, but maybe we can just upsert or findOneAndUpdate if we allow partials?
+            // Actually, verifyOtp handles creation.
+            // We need a place to store OTP for a non-existent user.
+            // Solution: Use a separate OTP model or just create the user with default "Guest" name.
+            // Let's create the user here to store the OTP.
+            user = await User.create({
+                phone,
+                name: 'Guest', // Temporary
+                role: 'labour', // Default, changed later
+                isVerified: false
+            });
+        }
+
+        let sentOtp: string | undefined;
 
         // Real OTP send using RapidAPI
         if (process.env.OTP_BYPASS_ENABLED !== 'true') {
-            await otpService.sendOTP(phone);
+            const apiRes = await otpService.sendOTP(phone);
+            if (apiRes.success && apiRes.otp) {
+                sentOtp = apiRes.otp;
+                // Save OTP to DB
+                user.phoneUpdateOTP = sentOtp;
+                user.phoneUpdateOTPExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+                await user.save();
+            }
+        }
+
+        // Dev Bypass Logic
+        if (process.env.OTP_BYPASS_ENABLED === 'true') {
+            sentOtp = '1234';
+            user.phoneUpdateOTP = sentOtp;
+            user.phoneUpdateOTPExpire = new Date(Date.now() + 10 * 60 * 1000);
+            await user.save();
         }
 
         success(res, {
@@ -34,33 +70,36 @@ export const verifyOtp = async (req: Request, res: Response) => {
         const { phone, otp, name } = req.body;
         console.log('Verifying OTP for:', phone, 'OTP:', otp);
 
+        const user = await User.findOne({ phone });
+        if (!user) {
+            return error(res, 'User not found (OTP not requested?)', 400);
+        }
+
         const bypassEnabled = process.env.OTP_BYPASS_ENABLED === 'true';
         const testOtp = process.env.TEST_OTP || '1234';
 
         if (bypassEnabled) {
-            console.log('OTP Verify: Bypass Enabled. Expecting:', testOtp);
-            if (otp !== testOtp) {
-                return error(res, 'Invalid OTP (Test Mode)', 400);
-            }
+            if (otp !== testOtp) return error(res, 'Invalid OTP (Test Mode)', 400);
         } else {
-            // Real OTP verification
-            const result = await otpService.verifyOTP(phone, otp);
-            if (!result.success) {
-                return error(res, result.message || 'Invalid OTP', 400);
+            // Check DB OTP
+            if (!user.phoneUpdateOTP || user.phoneUpdateOTP !== otp) {
+                return error(res, 'Invalid OTP', 400);
+            }
+            // Check Expiry
+            if (user.phoneUpdateOTPExpire && user.phoneUpdateOTPExpire < new Date()) {
+                return error(res, 'OTP Expired', 400);
             }
         }
 
-        let user = await User.findOne({ phone });
-
-        if (!user) {
-            // Create User
-            console.log('Creating new user for phone:', phone);
-            user = await User.create({
-                name: name || 'User',
-                phone,
-                // Role is optional now
-            });
+        // Clear OTP
+        user.phoneUpdateOTP = undefined;
+        user.phoneUpdateOTPExpire = undefined;
+        // Update Name if provided (Register flow)
+        if (name && user.name === 'Guest') {
+            user.name = name;
         }
+        await user.save();
+
 
         const role = user.role || 'labour'; // Default for token generation, though maybe 'pending' is safer? 
         // Let's use 'labour' as a safe fallback for token so middlewares don't crash, 

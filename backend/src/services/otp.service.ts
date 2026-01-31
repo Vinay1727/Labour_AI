@@ -6,9 +6,18 @@ class OTPService {
     private readonly host = RAPID_API_HOST;
 
     /**
-     * Standardizes phone number to E.164 format (+91XXXXXXXXXX)
-     * Some APIs might fail with spaces, so we allow a toggle.
+     * Standardizes phone number to purely numeric format without +.
+     * Example: 9630370764 -> 919630370764 (India prefix)
      */
+    private normalizePhone(phone: string): string {
+        const clean = phone.replace(/\D/g, '');
+        // Ensure 91 prefix
+        return clean.length === 10 ? `91${clean}` : clean;
+    }
+
+    // Generate a random 4 digit OTP
+    generateOTP(): string {
+        return Math.floor(1000 + Math.random() * 9000).toString();
     private normalizePhone(phone: string, includeSpace: boolean = false): string {
         const clean = phone.replace(/\D/g, ''); // Keep only digits
         // Ensure India code 91 is present
@@ -18,72 +27,42 @@ class OTPService {
     }
 
     async sendOTP(phone: string) {
-        if (!this.key) {
-            console.error('[OTP] RAPID_API_KEY is missing in environment variables');
-            throw new Error('OTP Service Configuration Error');
-        }
+        if (!this.key) throw new Error('OTP Service Configuration Error: Missing API Key');
 
-        const targetPhone = this.normalizePhone(phone, true); // Using space as per your earlier log success
-        console.log(`[OTP] Attempting to send SMS to: ${targetPhone}`);
+        const targetPhone = this.normalizePhone(phone);
+        const otp = this.generateOTP();
+
+        console.log(`[OTP] Sending ${otp} to ${targetPhone} via ${this.host}`);
 
         try {
-            const { data } = await axios.post(
-                `https://${this.host}/send-numeric-verify`,
-                {
-                    target: targetPhone,
-                    estimate: false
+            // Using the new API endpoint structure observed from SMSly
+            const response = await axios.get(`https://${this.host}/otp`, {
+                params: {
+                    phone: targetPhone,
+                    otp: otp
                 },
-                {
-                    headers: {
-                        'x-rapidapi-key': this.key,
-                        'x-rapidapi-host': this.host,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 8000 // 8 seconds timeout
+                headers: {
+                    'x-rapidapi-key': this.key,
+                    'x-rapidapi-host': this.host
                 }
-            );
+            });
 
-            console.log('[OTP] Provider Response:', data);
-
-            if (data.status === 'failed') {
-                throw new Error(data.message || 'Provider rejected the request. Check country support.');
-            }
-
-            return { success: true, data };
+            console.log('[OTP] Response:', response.data);
+            return { success: true, otp };
         } catch (error: any) {
-            const errorMsg = error.response?.data?.message || error.message;
-            console.error('[OTP] Send Failed:', errorMsg);
-            throw new Error(`SMS_SEND_FAILED: ${errorMsg}`);
+            console.error('[OTP-API Error]', error.response?.data || error.message);
+            // Even if API fails, for dev we might want to know. 
+            // In strict prod, we throw.
+            throw new Error('Failed to send OTP via SMSly');
         }
     }
 
-    async verifyOTP(phone: string, token: string) {
-        const targetPhone = this.normalizePhone(phone, true);
-
-        try {
-            const { data } = await axios.post(
-                `https://${this.host}/verify-sms`,
-                {
-                    target: targetPhone,
-                    token: token
-                },
-                {
-                    headers: {
-                        'x-rapidapi-key': this.key,
-                        'x-rapidapi-host': this.host,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            return {
-                success: data.status === 'success' || data.success === true,
-                message: data.message || (data.status === 'failed' ? 'Invalid OTP' : '')
-            };
-        } catch (error: any) {
-            console.error('[OTP] Verify Error:', error.response?.data || error.message);
-            return { success: false, message: 'OTP verification service unavailable' };
+    async verifyOTP(phone: string, token: string, storedOTP?: string) {
+        // Compare with locally stored OTP passed from controller
+        if (storedOTP && token === storedOTP) {
+            return { success: true, message: 'Verified locally' };
         }
+        return { success: false, message: 'Invalid OTP' };
     }
 }
 
