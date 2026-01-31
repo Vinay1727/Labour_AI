@@ -12,7 +12,7 @@ class OTPService {
     private normalizePhone(phone: string): string {
         const clean = phone.replace(/\D/g, '');
         // Ensure 91 prefix
-        return clean.length === 10 ? `91${clean}` : clean;
+        return clean.length === 10 ? `+91${clean}` : clean;
     }
 
     // Generate a random 4 digit OTP
@@ -29,7 +29,6 @@ class OTPService {
         console.log(`[OTP] Sending ${otp} to ${targetPhone} via ${this.host}`);
 
         try {
-            // Using the new API endpoint structure observed from SMSly
             const response = await axios.get(`https://${this.host}/otp`, {
                 params: {
                     phone: targetPhone,
@@ -45,8 +44,6 @@ class OTPService {
             return { success: true, otp };
         } catch (error: any) {
             console.error('[OTP-API Error]', error.response?.data || error.message);
-            // Even if API fails, for dev we might want to know. 
-            // In strict prod, we throw.
             throw new Error('Failed to send OTP via SMSly');
         }
     }
