@@ -10,15 +10,11 @@ class OTPService {
      * Some APIs might fail with spaces, so we allow a toggle.
      */
     private normalizePhone(phone: string, includeSpace: boolean = false): string {
-        const clean = phone.replace(/\D/g, ''); // Sirf numbers rakhein
-        const base = clean.length > 10 ? clean : `91${clean}`;
-
-        if (includeSpace) {
-            // Format: +91 9876543210
-            return `+${base.slice(0, 2)} ${base.slice(2)}`;
-        }
-        // Format: +919876543210
-        return `+${base}`;
+        const clean = phone.replace(/\D/g, ''); // Keep only digits
+        // Ensure India code 91 is present
+        // If length is 10, add 91. If 12 (91...), keep it.
+        const withCode = clean.length === 10 ? `91${clean}` : clean;
+        return withCode;
     }
 
     async sendOTP(phone: string) {
