@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { success, error } from '../utils/response';
 import User from '../models/User.model';
 import { generateToken } from '../utils/jwt';
+import * as otpService from '../services/otp.service';
 
 export const requestOtp = async (req: Request, res: Response) => {
     try {
@@ -9,19 +10,22 @@ export const requestOtp = async (req: Request, res: Response) => {
         console.log('OTP Request for:', phone);
 
         const user = await User.findOne({ phone });
-        // Simulating OTP send
-        const otp = '1234';
+
+        // Real OTP send using RapidAPI
+        if (process.env.OTP_BYPASS_ENABLED !== 'true') {
+            await otpService.sendOTP(phone);
+        }
 
         success(res, {
             exists: !!user,
             otpSent: true,
-            // Only for dev debugging
-            otp
+            // In production, don't send OTP in response
+            otp: process.env.OTP_BYPASS_ENABLED === 'true' ? '1234' : undefined
         }, 'OTP sent successfully');
 
     } catch (e: any) {
         console.error('OTP Request Error:', e);
-        error(res, e.message);
+        error(res, e.message || 'Failed to send OTP');
     }
 };
 
@@ -39,9 +43,10 @@ export const verifyOtp = async (req: Request, res: Response) => {
                 return error(res, 'Invalid OTP (Test Mode)', 400);
             }
         } else {
-            // TODO: Implement real OTP verification here (e.g. Redis, DB, or Provider API)
-            if (otp !== '1234') { // Fallback mock for now if env not set
-                return error(res, 'Invalid OTP', 400);
+            // Real OTP verification
+            const result = await otpService.verifyOTP(phone, otp);
+            if (!result.success) {
+                return error(res, result.message || 'Invalid OTP', 400);
             }
         }
 
