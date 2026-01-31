@@ -13,7 +13,7 @@ class OTPService {
         const clean = phone.replace(/\D/g, ''); // Keep only digits
         // Ensure India code 91 is present
         // If length is 10, add 91. If 12 (91...), keep it.
-        const withCode = clean.length === 10 ? `91${clean}` : clean;
+        const withCode = clean.length === 10 ? `+91${clean}` : clean;
         return withCode;
     }
 
