@@ -12,7 +12,9 @@ export const sendOTP = async (phone: string) => {
                 'Content-Type': 'application/json'
             },
             data: {
-                target: phone.startsWith('+') ? phone : `+91${phone}`,
+                target: phone.startsWith('+')
+                    ? (phone.includes(' ') ? phone : `${phone.slice(0, 3)} ${phone.slice(3)}`)
+                    : `+91 ${phone}`,
                 estimate: false
             }
         };
@@ -38,7 +40,9 @@ export const verifyOTP = async (phone: string, token: string) => {
                 'Content-Type': 'application/json'
             },
             data: {
-                target: phone.startsWith('+') ? phone : `+91${phone}`,
+                target: phone.startsWith('+')
+                    ? (phone.includes(' ') ? phone : `${phone.slice(0, 3)} ${phone.slice(3)}`)
+                    : `+91 ${phone}`,
                 token: token
             }
         };
