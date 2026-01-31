@@ -18,6 +18,12 @@ class OTPService {
     // Generate a random 4 digit OTP
     generateOTP(): string {
         return Math.floor(1000 + Math.random() * 9000).toString();
+    private normalizePhone(phone: string, includeSpace: boolean = false): string {
+        const clean = phone.replace(/\D/g, ''); // Keep only digits
+        // Ensure India code 91 is present
+        // If length is 10, add 91. If 12 (91...), keep it.
+        const withCode = clean.length === 10 ? `+91${clean}` : clean;
+        return withCode;
     }
 
     async sendOTP(phone: string) {
