@@ -62,13 +62,16 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
         const { dealId } = req.params;
         const userId = req.user._id;
 
-        const deal = await Deal.findById(dealId);
+        const deal = await Deal.findById(dealId)
+            .populate('contractorId', 'name phone')
+            .populate('labourId', 'name phone');
+
         if (!deal) return error(res, 'Deal not found', 404);
 
         // Security check
         const isParticipant =
-            deal.contractorId.toString() === userId.toString() ||
-            deal.labourId.toString() === userId.toString();
+            (deal.contractorId as any)._id.toString() === userId.toString() ||
+            (deal.labourId as any)._id.toString() === userId.toString();
 
         if (!isParticipant) return error(res, 'Access denied', 403);
 
@@ -76,7 +79,25 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
             .sort({ createdAt: 1 })
             .limit(100);
 
-        success(res, messages);
+        // Mark messages as read if receiver is current user
+        await Message.updateMany(
+            { dealId, receiverId: userId, isRead: false },
+            { $set: { isRead: true } }
+        );
+
+        const otherUser = (deal.contractorId as any)._id.toString() === userId.toString()
+            ? deal.labourId
+            : deal.contractorId;
+
+        success(res, {
+            messages,
+            otherUser: {
+                _id: (otherUser as any)._id,
+                name: (otherUser as any).name,
+                phone: (otherUser as any).phone
+            },
+            status: deal.status
+        });
     } catch (e: any) {
         error(res, e.message);
     }
@@ -95,10 +116,16 @@ export const getActiveChats = async (req: AuthRequest, res: Response) => {
             .populate('labourId', 'name phone')
             .populate('jobId', 'workType');
 
-        // For each deal, get the last message if exists
+        // For each deal, get the last message if exists and unread count
         const chats = await Promise.all(approvedDeals.map(async (deal: any) => {
             const lastMsg = await Message.findOne({ dealId: deal._id })
                 .sort({ createdAt: -1 });
+
+            const unreadCount = await Message.countDocuments({
+                dealId: deal._id,
+                receiverId: userId,
+                isRead: false
+            });
 
             return {
                 dealId: deal._id,
@@ -106,9 +133,11 @@ export const getActiveChats = async (req: AuthRequest, res: Response) => {
                 otherUser: deal.contractorId._id.toString() === userId.toString() ? deal.labourId : deal.contractorId,
                 lastMessage: lastMsg?.message || 'No messages yet',
                 lastMessageTime: lastMsg?.createdAt || deal.updatedAt,
+                unreadCount,
                 status: deal.status
             };
         }));
+
 
         success(res, chats.sort((a: any, b: any) =>
             new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()

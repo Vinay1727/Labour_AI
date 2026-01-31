@@ -1,65 +1,64 @@
-import axios from 'axios';
-import { RAPID_API_KEY, RAPID_API_HOST } from '../config/env';
+import axios from "axios";
+import { RAPID_API_KEY, RAPID_API_HOST, SMS_API_URL } from "../config/env";
 
 class OTPService {
-    private readonly key = RAPID_API_KEY;
-    private readonly host = RAPID_API_HOST;
+    private readonly apiKey: string = RAPID_API_KEY;
+    private readonly apiHost: string = RAPID_API_HOST;
+    private readonly apiUrl: string = SMS_API_URL;
 
-    /**
-     * Standardizes phone number to purely numeric format without +.
-     * Example: 9630370764 -> 919630370764 (India prefix)
-     */
+    // Normalize phone number to +91XXXXXXXXXX
     private normalizePhone(phone: string): string {
-        const clean = phone.replace(/\D/g, '');
-        // Ensure 91 prefix
-        return clean.length === 10 ? `+91${clean}` : clean;
+        const clean = phone.replace(/\D/g, "");
+        const formatted = clean.length === 10 ? `+91${clean}` : `+${clean}`;
+        return formatted;
     }
 
-    // Generate a random 4 digit OTP
+    // Generate 4 digit OTP
     generateOTP(): string {
-        return Math.floor(1000 + Math.random() * 9000).toString();
-    private normalizePhone(phone: string, includeSpace: boolean = false): string {
-        const clean = phone.replace(/\D/g, ''); // Keep only digits
-        // Ensure India code 91 is present
-        // If length is 10, add 91. If 12 (91...), keep it.
-        const withCode = clean.length === 10 ? `+91${clean}` : clean;
-        return withCode;
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        return otp;
     }
 
     async sendOTP(phone: string) {
-        if (!this.key) throw new Error('OTP Service Configuration Error: Missing API Key');
+        // Check configuration
+        if (!this.apiKey || !this.apiHost || !this.apiUrl) {
+            throw new Error("OTP Service Configuration Error: Missing env variables");
+        }
 
         const targetPhone = this.normalizePhone(phone);
         const otp = this.generateOTP();
 
-        console.log(`[OTP] Sending ${otp} to ${targetPhone} via ${this.host}`);
+        console.log(`[OTP] Sending ${otp} to ${targetPhone}`);
 
         try {
-            const response = await axios.get(`https://${this.host}/otp`, {
+            const response = await axios.get(this.apiUrl, {
                 params: {
                     phone: targetPhone,
-                    otp: otp
+                    otp: otp,
                 },
                 headers: {
-                    'x-rapidapi-key': this.key,
-                    'x-rapidapi-host': this.host
-                }
+                    "x-rapidapi-key": this.apiKey,
+                    "x-rapidapi-host": this.apiHost,
+                    "Content-Type": "application/json",
+                },
             });
 
-            console.log('[OTP] Response:', response.data);
+            console.log("[OTP] Response:", response.data);
             return { success: true, otp };
         } catch (error: any) {
-            console.error('[OTP-API Error]', error.response?.data || error.message);
-            throw new Error('Failed to send OTP via SMSly');
+            console.error(
+                "[OTP-API Error]",
+                error.response?.data || error.message
+            );
+            throw new Error(`Failed to send OTP: ${error.message}`);
         }
     }
 
     async verifyOTP(phone: string, token: string, storedOTP?: string) {
-        // Compare with locally stored OTP passed from controller
         if (storedOTP && token === storedOTP) {
-            return { success: true, message: 'Verified locally' };
+            return { success: true, message: "Verified locally" };
         }
-        return { success: false, message: 'Invalid OTP' };
+        return { success: false, message: "Invalid OTP" };
     }
 }
 

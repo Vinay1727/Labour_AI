@@ -7,3 +7,4 @@ export const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 export const NODE_ENV = process.env.NODE_ENV || 'development';
 export const RAPID_API_KEY = process.env.RAPID_API_KEY || '';
 export const RAPID_API_HOST = process.env.RAPID_API_HOST || 'gurubrahma-smsly-sms-to-india-v1.p.rapidapi.com';
+export const SMS_API_URL = process.env.SMS_API_URL || 'https://gurubrahma-smsly-sms-to-india-v1.p.rapidapi.com/sms/otp';
