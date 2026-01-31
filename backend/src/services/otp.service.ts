@@ -12,7 +12,7 @@ class OTPService {
     private normalizePhone(phone: string): string {
         const clean = phone.replace(/\D/g, '');
         // Ensure 91 prefix
-        return clean.length === 10 ? `91${clean}` : clean;
+        return clean.length === 10 ? `+91${clean}` : clean;
     }
 
     // Generate a random 4 digit OTP
