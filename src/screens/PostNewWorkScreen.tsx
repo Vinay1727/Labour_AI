@@ -212,11 +212,26 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
     }, [isEditMode, jobData]);
 
     const isFormValid = () => {
+        // Must select at least one skill
         if (selectedSkills.length === 0) return false;
-        if (selectedSkills.some(s => s.count < 1)) return false;
+
+        // Every skill must have a valid count and a price
+        const skillsValid = selectedSkills.every(s =>
+            s.count >= 1 &&
+            s.payment.amount.trim() !== '' &&
+            parseFloat(s.payment.amount) > 0
+        );
+        if (!skillsValid) return false;
+
+        // Custom duration validation
         if (durationLabel === t('custom_days') && (!customDays || parseInt(customDays) < 1)) return false;
+
+        // General duration selection (it defaults to '1 Day', so it's usually valid)
+        if (!durationLabel) return false;
+
         return true;
     };
+
 
     const handlePostWork = async () => {
         setIsLoading(true);
@@ -354,37 +369,45 @@ export default function PostNewWorkScreen({ navigation, route }: any) {
                             )}
                         </View>
 
-                        <View style={styles.workTypeGrid}>
-                            {filteredWorkTypes.map((type) => (
-                                <TouchableOpacity
-                                    key={type.id}
-                                    style={[
-                                        styles.typeCard,
-                                        isSkillSelected(type.id) && styles.selectedTypeCard
-                                    ]}
-                                    onPress={() => toggleWorkType(type.id)}
-                                    activeOpacity={0.8}
-                                >
-                                    <View style={styles.typeIconContainer}>
-                                        <Text style={styles.typeIcon}>{type.icon}</Text>
-                                    </View>
-                                    <Text style={[
-                                        styles.typeLabel,
-                                        isSkillSelected(type.id) && styles.selectedTypeLabel
-                                    ]} numberOfLines={1}>{type.label}</Text>
-                                    {isSkillSelected(type.id) && (
-                                        <View style={styles.checkBadge}>
-                                            <AppIcon name="checkmark-circle" size={18} color={Colors.primary} />
+                        {searchQuery.length > 0 ? (
+                            <View style={styles.workTypeGrid}>
+                                {filteredWorkTypes.map((type) => (
+                                    <TouchableOpacity
+                                        key={type.id}
+                                        style={[
+                                            styles.typeCard,
+                                            isSkillSelected(type.id) && styles.selectedTypeCard
+                                        ]}
+                                        onPress={() => toggleWorkType(type.id)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <View style={styles.typeIconContainer}>
+                                            <Text style={styles.typeIcon}>{type.icon}</Text>
                                         </View>
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-                            {filteredWorkTypes.length === 0 && (
-                                <View style={styles.noResultContainer}>
-                                    <Text style={styles.noResultText}>{t('no_skills_found' as any)} for "{searchQuery}"</Text>
-                                </View>
-                            )}
-                        </View>
+                                        <Text style={[
+                                            styles.typeLabel,
+                                            isSkillSelected(type.id) && styles.selectedTypeLabel
+                                        ]} numberOfLines={1}>{type.label}</Text>
+                                        {isSkillSelected(type.id) && (
+                                            <View style={styles.checkBadge}>
+                                                <AppIcon name="checkmark-circle" size={18} color={Colors.primary} />
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                ))}
+                                {filteredWorkTypes.length === 0 && (
+                                    <View style={styles.noResultContainer}>
+                                        <Text style={styles.noResultText}>{t('no_skills_found' as any)} for "{searchQuery}"</Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={styles.infoHintContainer}>
+                                <AppIcon name="information-circle-outline" size={20} color={Colors.textSecondary} />
+                                <Text style={styles.infoHintText}>Search for any work or skill you need (Painter, Mistri, etc.)</Text>
+                            </View>
+                        )}
+
                     </View>
 
                     {/* Skill-Specific details */}
@@ -1040,5 +1063,23 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: Colors.border,
     },
+    infoHintContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.lg,
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        borderStyle: 'dashed',
+    },
+    infoHintText: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        marginLeft: spacing.sm,
+        flex: 1,
+        fontStyle: 'italic',
+    },
 });
+
 

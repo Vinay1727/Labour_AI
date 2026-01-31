@@ -25,6 +25,7 @@ import { useTranslation } from '../context/LanguageContext';
 import { Job, Labour } from '../types/search';
 import api from '../services/api';
 import * as Location from 'expo-location';
+import { Audio } from 'expo-av';
 
 export default function SearchScreen() {
     const { role, user } = useAuth();
@@ -39,6 +40,10 @@ export default function SearchScreen() {
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
+    // Voice Search State
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+
     // Filters
     const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
     const [distanceKm, setDistanceKm] = useState<number>(25);
@@ -47,6 +52,71 @@ export default function SearchScreen() {
     const [userLocation, setUserLocation] = useState<any>(null);
 
     const isLabour = role === 'labour';
+
+    const startRecording = async () => {
+        try {
+            const { status } = await Audio.requestPermissionsAsync();
+            if (status !== 'granted') return Alert.alert('Permission required', 'Allow microphone access for voice search');
+
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
+
+            console.log('Starting recording..');
+            const { recording } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.HIGH_QUALITY
+            );
+            setRecording(recording);
+            setIsRecording(true);
+        } catch (err) {
+            console.error('Failed to start recording', err);
+        }
+    };
+
+    const stopRecording = async () => {
+        console.log('Stopping recording..');
+        if (!recording) return;
+
+        setRecording(null);
+        setIsRecording(false);
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        if (!uri) return;
+
+        // Send to backend
+        sendAudioToBackend(uri);
+    };
+
+    const sendAudioToBackend = async (uri: string) => {
+        setLoading(true);
+        try {
+            const formData = new FormData();
+            const filename = uri.split('/').pop() || 'voice.m4a';
+
+            formData.append('audio', {
+                uri: uri,
+                name: filename,
+                type: 'audio/m4a',
+            } as any);
+
+            const res = await api.post('search/voice', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (res.data.success && res.data.data.query) {
+                const transcribedText = res.data.data.query;
+                setSearchQuery(transcribedText);
+                // Trigger search with the new query
+                setTimeout(() => fetchResults(), 100);
+            }
+        } catch (err: any) {
+            console.error('Voice Search Upload Error', err.response?.data || err.message);
+            Alert.alert('Voice Search Error', 'Could not understand audio. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getMyLocation = async () => {
         try {
@@ -136,8 +206,20 @@ export default function SearchScreen() {
                         onSubmitEditing={() => fetchResults()}
                         returnKeyType="search"
                     />
+                    <TouchableOpacity
+                        onPressIn={startRecording}
+                        onPressOut={stopRecording}
+                        style={[styles.voiceBtn, isRecording && styles.voiceBtnActive]}
+                    >
+                        <AppIcon
+                            name={isRecording ? "mic" : "mic-outline"}
+                            size={24}
+                            color={isRecording ? Colors.white : Colors.primary}
+                        />
+                    </TouchableOpacity>
                 </View>
             </View>
+
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                 <FilterChip
@@ -277,7 +359,22 @@ const styles = StyleSheet.create({
     searchBarContainer: { paddingHorizontal: spacing.l, paddingTop: spacing.md, marginBottom: spacing.xs },
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 20, paddingHorizontal: 16, height: 56 },
     searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: Colors.textPrimary, fontWeight: '500' },
+    voiceBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+        elevation: 2,
+    },
+    voiceBtnActive: {
+        backgroundColor: Colors.primary,
+        transform: [{ scale: 1.1 }],
+    },
     filterScroll: { paddingHorizontal: spacing.l, gap: 10 },
+
     chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 15, borderWidth: 1, borderColor: '#E2E8F0', gap: 6 },
     activeChip: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipText: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
