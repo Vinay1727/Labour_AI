@@ -1,58 +1,94 @@
 import axios from 'axios';
 import { RAPID_API_KEY, RAPID_API_HOST } from '../config/env';
 
-export const sendOTP = async (phone: string) => {
-    try {
-        const options = {
-            method: 'POST',
-            url: `https://${RAPID_API_HOST}/send-numeric-verify`,
-            headers: {
-                'x-rapidapi-key': RAPID_API_KEY,
-                'x-rapidapi-host': RAPID_API_HOST,
-                'Content-Type': 'application/json'
-            },
-            data: {
-                target: phone.startsWith('+')
-                    ? (phone.includes(' ') ? phone : `${phone.slice(0, 3)} ${phone.slice(3)}`)
-                    : `+91 ${phone}`,
-                estimate: false
-            }
-        };
+class OTPService {
+    private readonly key = RAPID_API_KEY;
+    private readonly host = RAPID_API_HOST;
 
-        const response = await axios.request(options);
-        console.log('OTP API Response:', response.data);
-        return response.data;
-    } catch (error: any) {
-        console.error('OTP Send Error:', error.response?.data || error.message);
-        // Fallback or rethrow? Let's rethrow to catch in controller
-        throw error;
+    /**
+     * Standardizes phone number to E.164 format (+91XXXXXXXXXX)
+     * Some APIs might fail with spaces, so we allow a toggle.
+     */
+    private normalizePhone(phone: string, includeSpace: boolean = false): string {
+        const clean = phone.replace(/\D/g, ''); // Sirf numbers rakhein
+        const base = clean.length > 10 ? clean : `91${clean}`;
+
+        if (includeSpace) {
+            // Format: +91 9876543210
+            return `+${base.slice(0, 2)} ${base.slice(2)}`;
+        }
+        // Format: +919876543210
+        return `+${base}`;
     }
-};
 
-export const verifyOTP = async (phone: string, token: string) => {
-    try {
-        const options = {
-            method: 'POST',
-            url: `https://${RAPID_API_HOST}/verify-sms`,
-            headers: {
-                'x-rapidapi-key': RAPID_API_KEY,
-                'x-rapidapi-host': RAPID_API_HOST,
-                'Content-Type': 'application/json'
-            },
-            data: {
-                target: phone.startsWith('+')
-                    ? (phone.includes(' ') ? phone : `${phone.slice(0, 3)} ${phone.slice(3)}`)
-                    : `+91 ${phone}`,
-                token: token
+    async sendOTP(phone: string) {
+        if (!this.key) {
+            console.error('[OTP] RAPID_API_KEY is missing in environment variables');
+            throw new Error('OTP Service Configuration Error');
+        }
+
+        const targetPhone = this.normalizePhone(phone, true); // Using space as per your earlier log success
+        console.log(`[OTP] Attempting to send SMS to: ${targetPhone}`);
+
+        try {
+            const { data } = await axios.post(
+                `https://${this.host}/send-numeric-verify`,
+                {
+                    target: targetPhone,
+                    estimate: false
+                },
+                {
+                    headers: {
+                        'x-rapidapi-key': this.key,
+                        'x-rapidapi-host': this.host,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 8000 // 8 seconds timeout
+                }
+            );
+
+            console.log('[OTP] Provider Response:', data);
+
+            if (data.status === 'failed') {
+                throw new Error(data.message || 'Provider rejected the request. Check country support.');
             }
-        };
 
-        const response = await axios.request(options);
-        console.log('OTP Verify Response:', response.data);
-        // Usually returns { success: true/false } or similar
-        return response.data;
-    } catch (error: any) {
-        console.error('OTP Verify Error:', error.response?.data || error.message);
-        return { success: false, message: 'Verification failed' };
+            return { success: true, data };
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.message || error.message;
+            console.error('[OTP] Send Failed:', errorMsg);
+            throw new Error(`SMS_SEND_FAILED: ${errorMsg}`);
+        }
     }
-};
+
+    async verifyOTP(phone: string, token: string) {
+        const targetPhone = this.normalizePhone(phone, true);
+
+        try {
+            const { data } = await axios.post(
+                `https://${this.host}/verify-sms`,
+                {
+                    target: targetPhone,
+                    token: token
+                },
+                {
+                    headers: {
+                        'x-rapidapi-key': this.key,
+                        'x-rapidapi-host': this.host,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            return {
+                success: data.status === 'success' || data.success === true,
+                message: data.message || (data.status === 'failed' ? 'Invalid OTP' : '')
+            };
+        } catch (error: any) {
+            console.error('[OTP] Verify Error:', error.response?.data || error.message);
+            return { success: false, message: 'OTP verification service unavailable' };
+        }
+    }
+}
+
+export default new OTPService();

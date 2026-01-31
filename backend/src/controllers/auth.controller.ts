@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { success, error } from '../utils/response';
 import User from '../models/User.model';
 import { generateToken } from '../utils/jwt';
-import * as otpService from '../services/otp.service';
+import otpService from '../services/otp.service';
 
 export const requestOtp = async (req: Request, res: Response) => {
     try {
