@@ -4,8 +4,51 @@ import { success, error } from '../utils/response';
 import { AuthRequest } from '../middleware/auth.middleware';
 import Job from '../models/Job.model';
 import User from '../models/User.model';
+import OpenAI from 'openai';
+import fs from 'fs';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+export const voiceToSearchQuery = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!process.env.OPENAI_API_KEY) {
+            return error(res, 'Voice search not configured (Missing API Key)', 500);
+        }
+
+        if (!req.file) {
+            return error(res, 'No audio file provided', 400);
+        }
+
+        console.log('Voice Search: Processing audio file:', req.file.path);
+
+        // Transcribe audio using Whisper
+        const transcription = await openai.audio.transcriptions.create({
+            file: fs.createReadStream(req.file.path),
+            model: "whisper-1",
+            language: "hi", // Prioritize Hindi/Indian context
+            prompt: "Mason, Painter, Plumber, Electrician, Carpenter, Mistri, Labour, Helper" // Helper terms
+        });
+
+        const query = transcription.text.trim().replace(/[.!?]/g, '');
+        console.log('Voice Search Result:', query);
+
+        // Clean up file
+        fs.unlinkSync(req.file.path);
+
+        return success(res, { query }, 'Speech converted to text');
+    } catch (e: any) {
+        console.error('Voice Search Error:', e);
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        return error(res, 'Failed to process voice search');
+    }
+};
 
 export const unifiedSearch = async (req: AuthRequest, res: Response) => {
+
     try {
         const { q, lat, lng, distance = 25, skill, paymentType, rating } = req.query;
 
