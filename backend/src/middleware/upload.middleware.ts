@@ -18,10 +18,10 @@ const storage: StorageEngine = multer.diskStorage({
 });
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('audio/') || file.mimetype === 'application/octet-stream') {
         cb(null, true);
     } else {
-        cb(new Error('Only images are allowed!'));
+        cb(new Error('File type not supported!'));
     }
 };
 
@@ -50,3 +50,24 @@ export const uploadJobImages = multer({
     fileFilter: fileFilter,
     limits: { fileSize: 5 * 1024 * 1024 }
 });
+
+const voiceStorage: StorageEngine = multer.diskStorage({
+    destination: (req: Request, file: Express.Multer.File, cb) => {
+        const uploadPath = 'uploads/voice';
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+    },
+    filename: (req: Request, file: Express.Multer.File, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, 'voice-' + uniqueSuffix + '.m4a'); // Use m4a as a safe container
+    }
+});
+
+export const uploadVoice = multer({
+    storage: voiceStorage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 2 * 1024 * 1024 } // 2MB is plenty for 10s audio
+});
+
